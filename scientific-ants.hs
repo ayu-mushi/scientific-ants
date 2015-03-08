@@ -230,52 +230,48 @@ nextGeneration spacings n mutationalRate r0 numOfAnts genoms =
 mkServer :: (Int, Int) -> Server
 mkServer coordinates = (coordinates, array (0, 10) [])
 
-{-spacingItems ::
-  Array Int Ant ->
-  (Int -> (Int, Int)) -> -- spacing function for sugers
-  (Int -> (Int, Int)) -> -- 〃                   anteaters
-  (Int -> (Int, Int)) -> -- 〃                   servers
-  Int -> Int -> Int -> -- each number of sugers, anteaters, servers
-  GraphPaper
-spacingItems ans fSuger fAnteater fServer nSuger nAnteater nServer =
-  (ans,
-  map fSuger [0..nSuger-1],
-  map fAnteater [0..nAnteater-1],
-  map (mkServer <<< fServer) [0..nServer-1])
-
 ancestor :: Genom
-ancestor = []-}
+ancestor = array (0,0) []
 
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
 
-wall :: [Int] -> Int -> Int
+wall :: [Int] -> Int -> ObjectNumber
 wall = wall' 0 
   where
     wall' :: Int -> [Int] -> Int -> Int
-    wall' i (x:(y:xs)) p = if p <= x then i else wall (i + 1) ((x + y) : xs) x
+    wall' i [x] p = i
+    wall' i (x:(y:xs)) p = if p < x then i else wall' (i + 1) ((x + y) : xs) p
 
+--relativize :: [Int] -> [Int]
+--relativeze = 
+
+-- アイテム/エージェントの配置を決める
 spacingObjects ::
   StdGen ->
-  [Int -> Int] -- 各々の"傾向"を表す函数
-    -> [Int] -- 各アイテム/エージェントの、個数
+  [Int -> Int] -- 各々の"傾向"を表す函数列
+    -> [Int] -- 各アイテム/エージェントの個数を表す列
     -> Int -> Int -- GraphPaperの幅と高さ
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
-spacingObjects r0 fs ns width height = array ((0, 0), (width-1, height-1)) (spacingObjects' r0 ns 0 0)
+spacingObjects r0 fs ns width height = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
   where 
-    spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)]
-    spacingObjects' r0 ns i j =
-      ((i, j), wall ns x)
-        : (spacingObjects'
-          $ if width /= (i+1)
-            then spacingObjects' r1 ns (i+1) j
-            else spacingObjects' r1 ns i (j+1))
-    where
-      (x, r1) = randomR (0, numOfAllObjects) r0
-      numOfAllObjects = sum ns
-      distances = map (abs <<< ((-) j) <<< ($ i)) fs
+    spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
+    spacingObjects' r0 ns i j xs =
+      if j == height
+        then
+          []
+        else
+          ((i, j), obj)
+          : (if width /= (i + 1)
+            then spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) (i+1) j xs
+            else spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) 0 (j+1) xs)
+      where
+        (x, r1) = randomR (0, numOfAllObjects) r0
+        numOfAllObjects = (sum ns) - 1
+        distances = map (abs <<< ((-) j) <<< ($ i)) fs
+        obj = wall ns x
 
-spacingOfEachObjects :: [Int -> Int] -> [Int] -> Int -> Int -> [[(Int, Int)]]
+spacingOfEachObjects :: StdGen -> [Int -> Int] -> [Int] -> Int -> Int -> [[(Int, Int)]]
 spacingOfEachObjects r0 fs ns width height =
   [[(x, y)
     | x <- [0..width-1], y <- [0..height-1], (aryDim2 ! (x, y)) == i]
@@ -283,12 +279,12 @@ spacingOfEachObjects r0 fs ns width height =
   where
     aryDim2 = spacingObjects r0 fs ns width height 
 
-world1 :: GraphPaper
+{-world1 :: GraphPaper
 world1 = spacingItems
   (nextGeneration (size inst1) 0.05 (mkStdGen 100) 50 (replicate 10 ancestor))
   
     where
       spacing :: Int -> (Int, Int)
-      spacing = 
+      spacing = -}
 
-main = putStrLn "Yo"
+main = print $ elems $ spacingObjects (mkStdGen 6332) [id] [1,2,2,2,2] 3 3
