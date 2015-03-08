@@ -267,8 +267,7 @@ spacingObjects r0 fs ns width height = array ((0, 0), (width-1, height-1)) $ spa
             then spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) (i+1) j xs
             else spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) 0 (j+1) xs)
       where
-        (x, r1) = randomR (0, (numOfAllObjects - 1)) r0
-        numOfAllObjects = sum ns
+        (x, r1) = randomR (0, ((sum ns) - 1)) r0
         distances = map (abs <<< ((-) j) <<< ($ i)) fs
         obj = wall ns x
 
