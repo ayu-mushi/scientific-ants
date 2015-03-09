@@ -239,7 +239,7 @@ nextGeneration spacings sizeOfInsts mutationalRate r0 genoms =
     certainsure (Just x) = x
 
 mkServer :: (Int, Int) -> Server
-mkServer coordinates = (coordinates, array (0, 10) [])
+mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
 
 ancestor :: Genom
 ancestor = array (0,3) [(0, 0), (1, 1), (2, 1), (3, 4)]
@@ -260,7 +260,7 @@ wall = wall' 0
 -- アイテム/エージェントの配置を決める
 spacingObjects ::
   StdGen ->
-  [Int -> Int] -- 各々の"傾向"を表す函数列 //傾向性 is 未実装な
+  [Int -> Int] -- 各々の"傾向"を表す函数列 //note that 傾向性 is 未実装な
     -> [Int] -- 各アイテム/エージェントの個数を表す列
     -> Int -> Int -- GraphPaperの幅と高さ
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
@@ -291,15 +291,16 @@ spacingOfEachObjects r0 fs ns width height =
 
 world1 :: StdGen -> GraphPaper
 world1 r0 = toGrPp tuplizedSOEO
-    where
-      soeo = spacingOfEachObjects r0 [id] [5,1,1,1,1] 3 3
-      take4 :: [a] -> (a, a, a, a)
-      take4 (x:(y:(z:(w:_)))) = (x, y, z, w)
-      tuplizedSOEO = take4 soeo
-      toGrPp (x, y, z, w) =
-        (nextGeneration x (size insts1) 0.05 r0 (replicate 5 ancestor),
-          y,
-          z,
-          map mkServer w)
+  where
+    soeo = spacingOfEachObjects r0 [id] [5,1,1,1,1] 3 3
+    take5 :: [a] -> (a, a, a, a, a)
+    take5 (x:(y:(z:(w:(v:_))))) = (x, y, z, w, v)
+    tuplizedSOEO = take5 soeo
+    toGrPp :: ([(Int,Int)],[(Int,Int)],[(Int,Int)],[(Int,Int)],[(Int,Int)]) -> GraphPaper
+    toGrPp (_, x, y, z, w) =
+      (nextGeneration x (size insts1) 0.05 r0 (replicate 5 ancestor),
+       y,
+       z,
+       map mkServer w)
 
-main = print $ nextGeneration [(4,6),(3,5),(3,5)] (size insts1) 0.05 (mkStdGen 100) (replicate 2 ancestor)
+main = print $ world1 (mkStdGen 352343)
