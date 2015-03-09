@@ -4,7 +4,7 @@
  - そこで蟻は、規則性に関する知識を得るために動く
  - 知識は、サーバーを介した通信・蟻同士のp2p通信に因って他の蟻に伝達される
  -}
-module ScientificAnts where
+module ScientificAnts.Simulation where
 
 import Control.Lens
 import Data.Array
@@ -312,17 +312,3 @@ spacingOfEachObjects r0 fs ns width height =
       | i <- [0..(length ns)-1]]
   where
     aryDim2 = spacingObjects r0 fs ns width height 
-
-world1 :: StdGen -> GraphPaper
-world1 r0 = toGrPp tuplizedSOEO
-  where
-    soeo = spacingOfEachObjects r0 [id] [10,50,10,10,10] 30 30
-    take5 :: [a] -> (a, a, a, a, a)
-    take5 (x:(y:(z:(w:(v:_))))) = (x, y, z, w, v)
-    tuplizedSOEO = take5 soeo
-    toGrPp :: ([(Int,Int)],[(Int,Int)],[(Int,Int)],[(Int,Int)],[(Int,Int)]) -> GraphPaper
-    toGrPp (_, x, y, z, w) =
-      (nextGeneration x (size insts1) 0.05 r0 (replicate 5 ancestor), y, z, map mkServer w)
-
---genomeSampling :: GraphPaper -> IO ()
---genomeSampling world = 
