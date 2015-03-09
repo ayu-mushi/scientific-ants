@@ -166,10 +166,11 @@ spacingObjects ::
   StdGen ->
   [[(Int,Int)]] -- 各々の"傾向"を表す二次元ベクトルの列の列
     -> [Int] -- 各アイテム/エージェントの個数を表す列
-    -> Int -> Int -- GraphPaperの幅と高さ
+    -> Int -- GraphPaperの幅
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
-spacingObjects r0 vss ns width height = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
-  where 
+spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
+  where
+    height = (length $ concat ns) / width
     spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
     spacingObjects' r0 ns i j xs =
       if j == height
@@ -193,7 +194,7 @@ print2dArray ary2d = print2dArray' ary2d 0 0
   where
     print2dArray' :: (Show a) => Array (Int, Int) a -> Int -> Int -> String
     print2dArray' ary2d i j = 
-      (show (ary2d ! (j, i)))
+      (show (ary2d ! (i, j)))
         ++ (if i /= width
           then " " ++ (print2dArray' ary2d (i+1) j)
           else if j /= height
@@ -201,14 +202,14 @@ print2dArray ary2d = print2dArray' ary2d 0 0
             else ".")
     (_, (width, height)) = bounds ary2d 
 
-spacingOfEachObjects :: StdGen -> [[(Int,Int)]] -> [Int] -> Int -> Int -> [[(Int, Int)]]
-spacingOfEachObjects r0 vss ns width height =
+spacingOfEachObjects :: StdGen -> [[(Int,Int)]] -> [Int] -> Int -> [[(Int, Int)]]
+spacingOfEachObjects r0 vss ns width =
   [[(x, y)
     | x <- [0..width-1], y <- [0..height-1], (aryDim2 ! (x, y)) == i]
       | i <- [0..(length ns)-1]]
   where
     aryDim2 = spacingObjects r0 vss ns width height 
-
+    height = (length (concat ns)) / width
 -- 各々遺伝子とその遺伝子の使われる率
 popularityOfGenes :: [Genome] -> Int -> [(Int, Int)]
 popularityOfGenes gss sizeOfInsts =
