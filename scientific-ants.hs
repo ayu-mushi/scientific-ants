@@ -20,15 +20,15 @@ type IP = Int
 type Register = (Int, Int, Int, Int)
 type Stack = [Int]
 type Hunger = Int -- 満腹度
-type Genom = Array Int Int
+type Genome = Array Int Int
 
-type Ant = ((Int, Int), IP, Register, Stack, Hunger, Genom) -- 「蟻」
+type Ant = ((Int, Int), IP, Register, Stack, Hunger, Genome) -- 「蟻」
 ip :: Lens' Ant IP
 ip = _2
 register :: Lens' Ant Register
 register = _3
-genom :: Lens' Ant Genom
-genom = _6
+genome :: Lens' Ant Genome
+genome = _6
 hunger :: Lens' Ant Hunger
 hunger = _5
 stack :: Lens' Ant Stack
@@ -52,7 +52,7 @@ size = bounds >>> (^. _2) >>> (+ 1)
 incIP :: Instruction
 incIP i world =
     world & ((ants <<< (ix i) <<< ip)
-      %~ ((+1) >>> (flip mod $ size $ ((world ^. ants) ! i) ^. genom)))
+      %~ ((+1) >>> (flip mod $ size $ ((world ^. ants) ! i) ^. genome)))
 
 shl :: Instruction
 shl i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (flip shiftL 1))
@@ -118,22 +118,31 @@ discard :: Instruction
 discard i world = world & (ants <<< (ix i) <<< stack) %~ tail
 
 popA :: Instruction
-popA i world = (discard i world) & (ants <<< (ix i) <<< register <<< _1) .~ x
+popA i world =
+  if (((world ^. ants) ! i) ^. stack) == [] then world
+    else (discard i world) & (ants <<< (ix i) <<< register <<< _1) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popB :: Instruction
-popB i world = (discard i world) & (ants <<< (ix i) <<< register <<< _2) .~ x
+popB i world =
+  if (((world ^. ants) ! i) ^. stack) == [] then world
+    else (discard i world) & (ants <<< (ix i) <<< register <<< _2) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popC :: Instruction
-popC i world = (discard i world) & (ants <<< (ix i) <<< register <<< _3) .~ x
+
+popC i world = 
+  if (((world ^. ants) ! i) ^. stack) == [] then world
+    else (discard i world) & (ants <<< (ix i) <<< register <<< _3) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popD :: Instruction
-popD i world = (discard i world) & (ants <<< (ix i) <<< register <<< _4) .~ x
+popD i world =
+  if (((world ^. ants) ! i) ^. stack) == [] then world
+    else (discard i world) & (ants <<< (ix i) <<< register <<< _4) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
@@ -150,23 +159,23 @@ insts1 =
 refreshGraphPaper:: InstructionSet -> (Int, GraphPaper) -> (Int, GraphPaper)
 refreshGraphPaper insts (i, world) =
   ((i + 1) `mod` (size (world ^. ants)),
-    (incIP i $ (insts ! ((theAnt ^. genom) ! (theAnt ^. ip))) i world))
+    (incIP i $ (insts ! ((theAnt ^. genome) ! (theAnt ^. ip))) i world))
 
     where
       theAnt = (world ^. ants) ! i
 
-mutate :: Int -> (Genom, StdGen) -> (Genom, StdGen)
+mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
 mutate sizeOfInsts (gm, r0) = (gm // [(i, g)], r2)
   where
     (i, r1) = randomR (0, ((size gm) - 1)) r0
     (g, r2) = randomR (0, sizeOfInsts-1) r1
 
-mkAnt :: (Int, Int) -> Genom -> Ant
+mkAnt :: (Int, Int) -> Genome -> Ant
 mkAnt coordinates g = (coordinates, 0, (0, 0, 0, 0), [], 0, g)
 
 -- 選択、満腹度最高よりn匹のゲノム
-choise :: Int -> Array Int Ant -> [Genom]
-choise n ans = map (^. genom) (folddArr selector ((size ans) - 1) ([] :: [Ant]) ans)
+choise :: Int -> Array Int Ant -> [Genome]
+choise n ans = map (^. genome) (folddArr selector ((size ans) - 1) ([] :: [Ant]) ans)
   where
     folddArr :: (a -> b -> a) -> Int -> a -> Array Int b -> a
     folddArr _ 0 a _ = a -- """fold down""" for Array
@@ -211,25 +220,25 @@ replicateWithRemainder (n, 0) xs = replicate n xs
 replicateWithRemainder (n, remainder) xs = concat [(replicate n xs),[(take remainder xs)]]
 
 -- 選ばれた強い蟻から、numOfAnts匹の蟻を作る
-nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> [Genom] -> Array Int Ant
-nextGeneration spacings sizeOfInsts mutationalRate r0 genoms =
+nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> [Genome] -> Array Int Ant
+nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
   if numOfAnts == 0
     then listArray (0, 0) []
-  else if (length genoms) >= numOfAnts
+  else if (length genomes) >= numOfAnts
     then listArray (0, numOfAnts-1) $
       take numOfAnts $
         (mapWithIx (mkAnts spacings)) $ (^. _1) $
           (randmap 
-            (fpow (mutate sizeOfInsts) $ round $ ((randomR (0.0, fromIntegral $ length genoms) r0) ^. _1) / mutationalRate)
-            (genoms, r0))
+            (fpow (mutate sizeOfInsts) $ round $ ((randomR (0.0, fromIntegral $ length genomes) r0) ^. _1) / mutationalRate)
+            (genomes, r0))
     else 
       flatArray $
         zipWith (nextGeneration `flip` sizeOfInsts `flip` mutationalRate `flip` r0)
-          (slice (length genoms) spacings)
-          $ replicateWithRemainder (numOfAnts `divMod` (length genoms)) genoms 
+          (slice (length genomes) spacings)
+          $ replicateWithRemainder (numOfAnts `divMod` (length genomes)) genomes 
 
   where
-    mkAnts :: [(Int, Int)] -> Genom -> Int -> Ant
+    mkAnts :: [(Int, Int)] -> Genome -> Int -> Ant
     mkAnts xys g i = mkAnt (certainsure (xys ^? ix i)) g
     numOfAnts = length spacings
 
@@ -241,7 +250,7 @@ nextGeneration spacings sizeOfInsts mutationalRate r0 genoms =
 mkServer :: (Int, Int) -> Server
 mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
 
-ancestor :: Genom
+ancestor :: Genome
 ancestor = array (0,3) [(0, 0), (1, 1), (2, 1), (3, 4)]
 
 type ObjectNumber = Int
@@ -303,4 +312,5 @@ world1 r0 = toGrPp tuplizedSOEO
        z,
        map mkServer w)
 
-main = print $ world1 (mkStdGen 352343)
+
+main = print $ (fpow (refreshGraphPaper insts1) 10 (0, world1 (mkStdGen 542343))) ^. (_2 <<< ants)
