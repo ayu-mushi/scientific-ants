@@ -1,3 +1,5 @@
+-- 参考: http://coderepos.org/share/browser/lang/csharp/Tierra/trunk 
+
 module ScientificAnts.InstructionSet where
 
 import Control.Lens
@@ -8,6 +10,8 @@ import Data.Bits
 import Data.List
 
 import ScientificAnts.Simulation
+
+data SearchDirection = Forward | Backward | Outward
 
 shl :: Instruction
 shl i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (flip shiftL 1))
@@ -116,11 +120,75 @@ popD i world =
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
+readPattern :: Genome -> Int -> [Int]
+readPattern gs i =
+  if ((size gs) <= i)
+    then []
+  else if (gs ! i) == 0
+    then 0 : readPattern gs (i + 1)
+  else if (gs ! i) == 1
+    then 1 : readPattern gs (i + 1)
+  else
+    []
+
+reverseTranscriptase :: [Int] -> [Int]
+reverseTranscriptase = map rt
+  where
+    rt 0 = 1
+    rt 1 = 0
+    rt _ = error "reverseTranscriptasing list must be constructed by 0 or 1."
+
+findForward :: Genome -> Int -> [Int] -> Maybe Int
+findForward gs i pattern =
+  if ((length pattern) <= i || pattern == [])
+    then Nothing
+  else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
+    then Just $ i + (length pattern) + 1
+    else findForward gs (i + 1) pattern
+
+findBackward :: Genome -> Int -> [Int] -> Maybe Int
+findBackward gs i pattern = 
+  if (i < 0 || pattern == [])
+    then Nothing
+  else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
+    then Just $ i + (length pattern) + 1
+    else findBackward gs (i - 1) pattern
+
+findMatchTemplate :: Genome -> Int -> SearchDirection -> Maybe Int
+findMatchTemplate gs i Forward = findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
+findMatchTemplate gs i Backward = findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
+findMatchTemplate gs i Outward =
+  if b == Nothing && f == Nothing then Nothing
+  else if (b == Nothing) then f
+  else if (f == Nothing) then b
+  else if (fmap abs $ fmap (flip (-) i) b) < (fmap abs $ fmap (flip (-) i) f) then b else f
+  where
+    b = findBackward gs i $ reverseTranscriptase pattern
+    f = findForward gs i $ reverseTranscriptase pattern
+    pattern = readPattern gs (i+1)
+
+jmpo :: Instruction
+jmpo i world = modifing foundAdr
+  where
+    foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Outward
+    modifing Nothing = err i world
+    modifing (Just x) = world & ((ants <<< (ix i) <<< ip) .~ x)
+    theAnt = (world ^. ants) ! i
+
+jmpb :: Instruction
+jmpb i world = modifing foundAdr
+  where
+    foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Backward
+    modifing Nothing = err i world
+    modifing (Just x) = world & ((ants <<< (ix i) <<< ip) .~ x)
+    theAnt = (world ^. ants) ! i
+
 insts1 :: InstructionSet
 insts1 =
   ((listArray & uncurry) <<< ((const 0 &&& length) &&& id))
     [nop, nop,   shl,   zero,  ifz,   subCAB, subAAC, incA, incB, decC,
-    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD]
+    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD, jmpo,
+    jmpb]
   where
     nop :: Instruction
     nop = flip const
