@@ -232,7 +232,7 @@ mkServer :: (Int, Int) -> Server
 mkServer coordinates = (coordinates, array (0, 10) [])
 
 ancestor :: Genom
-ancestor = array (0,0) []
+ancestor = array (0,3) [(0, 0), (1, 1), (2, 1), (3, 4)]
 
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
@@ -250,7 +250,7 @@ wall = wall' 0
 -- アイテム/エージェントの配置を決める
 spacingObjects ::
   StdGen ->
-  [Int -> Int] -- 各々の"傾向"を表す函数列
+  [Int -> Int] -- 各々の"傾向"を表す函数列 //傾向性 is 未実装な
     -> [Int] -- 各アイテム/エージェントの個数を表す列
     -> Int -> Int -- GraphPaperの幅と高さ
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
@@ -275,16 +275,20 @@ spacingOfEachObjects :: StdGen -> [Int -> Int] -> [Int] -> Int -> Int -> [[(Int,
 spacingOfEachObjects r0 fs ns width height =
   [[(x, y)
     | x <- [0..width-1], y <- [0..height-1], (aryDim2 ! (x, y)) == i]
-      | i <- [0..(length ns)]]
+      | i <- [0..(length ns)-1]]
   where
     aryDim2 = spacingObjects r0 fs ns width height 
 
-{-world1 :: GraphPaper
-world1 = spacingItems
-  (nextGeneration (size inst1) 0.05 (mkStdGen 100) 50 (replicate 10 ancestor))
-  
+world1 :: StdGen -> GraphPaper
+world1 r0 = toGrPp tuplizedSOEO
     where
-      spacing :: Int -> (Int, Int)
-      spacing = -}
-
-main = print $ elems $ spacingObjects (mkStdGen 6332) [id] [1,2,2,2,2] 3 3
+      soeo = spacingOfEachObjects r0 [id] [5,1,1,1,1] 3 3
+      take4 :: [a] -> (a, a, a, a)
+      take4 (x:(y:(z:(w:_)))) = (x, y, z, w)
+      tuplizedSOEO = take4 soeo
+      toGrPp (x, y, z, w) =
+        (nextGeneration x (size insts1) 0.05 r0 50 (replicate 10 ancestor),
+          y,
+          z,
+          map mkServer w)
+main = print $ mutate (size insts1) (ancestor, (mkStdGen 103))
