@@ -117,16 +117,19 @@ pushD i world = world & ((ants <<< (ix i) <<< stack) %~ push dx)
 discard :: Instruction
 discard i world = world & (ants <<< (ix i) <<< stack) %~ tail
 
+err:: Instruction
+err i world = world & ((ants <<< (ix i) <<< hunger) %~ flip (-) 1)
+
 popA :: Instruction
 popA i world =
-  if (((world ^. ants) ! i) ^. stack) == [] then world
+  if (((world ^. ants) ! i) ^. stack) == [] then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _1) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popB :: Instruction
 popB i world =
-  if (((world ^. ants) ! i) ^. stack) == [] then world
+  if (((world ^. ants) ! i) ^. stack) == [] then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _2) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
@@ -134,14 +137,14 @@ popB i world =
 popC :: Instruction
 
 popC i world = 
-  if (((world ^. ants) ! i) ^. stack) == [] then world
+  if (((world ^. ants) ! i) ^. stack) == [] then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _3) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popD :: Instruction
 popD i world =
-  if (((world ^. ants) ! i) ^. stack) == [] then world
+  if (((world ^. ants) ! i) ^. stack) == [] then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _4) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
@@ -301,7 +304,7 @@ spacingOfEachObjects r0 fs ns width height =
 world1 :: StdGen -> GraphPaper
 world1 r0 = toGrPp tuplizedSOEO
   where
-    soeo = spacingOfEachObjects r0 [id] [5,1,1,1,1] 3 3
+    soeo = spacingOfEachObjects r0 [id] [10,50,10,10,10] 30 30
     take5 :: [a] -> (a, a, a, a, a)
     take5 (x:(y:(z:(w:(v:_))))) = (x, y, z, w, v)
     tuplizedSOEO = take5 soeo
@@ -312,5 +315,7 @@ world1 r0 = toGrPp tuplizedSOEO
        z,
        map mkServer w)
 
+--genomeSampling ::
+--genomeSampling = 
 
 main = print $ (fpow (refreshGraphPaper insts1) 10 (0, world1 (mkStdGen 542343))) ^. (_2 <<< ants)
