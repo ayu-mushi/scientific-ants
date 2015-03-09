@@ -170,7 +170,7 @@ spacingObjects ::
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
 spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
   where
-    height = (length $ concat ns) / width
+    height = (sum ns) `div` width
     spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
     spacingObjects' r0 ns i j xs =
       if j == height
@@ -184,7 +184,7 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
       where
         distances = map (distanceBetweenPtsAndPt (i, j)) vss
         weight :: [Float]
-        weight = map ((/ (fromIntegral $ sum distances)) <<< fromIntegral) distances
+        weight = map (((-) 1) <<< (/ (fromIntegral $ sum distances)) <<< fromIntegral) distances
         weightedNs = zipWith (*) (map fromIntegral ns) weight
         (x, r1) = randomR (0.0, sum weightedNs) r0
         obj = wall weightedNs x
@@ -208,8 +208,8 @@ spacingOfEachObjects r0 vss ns width =
     | x <- [0..width-1], y <- [0..height-1], (aryDim2 ! (x, y)) == i]
       | i <- [0..(length ns)-1]]
   where
-    aryDim2 = spacingObjects r0 vss ns width height 
-    height = (length (concat ns)) / width
+    aryDim2 = spacingObjects r0 vss ns width 
+    height = (sum ns) `div` width
 -- 各々遺伝子とその遺伝子の使われる率
 popularityOfGenes :: [Genome] -> Int -> [(Int, Int)]
 popularityOfGenes gss sizeOfInsts =
