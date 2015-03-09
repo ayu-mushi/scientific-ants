@@ -155,12 +155,11 @@ refreshGraphPaper insts (i, world) =
     where
       theAnt = (world ^. ants) ! i
 
--- nは取りうる全命令の数
 mutate :: Int -> (Genom, StdGen) -> (Genom, StdGen)
-mutate n (gm, r0) = (gm // [(i, g)], r2)
+mutate sizeOfInsts (gm, r0) = (gm // [(i, g)], r2)
   where
     (i, r1) = randomR (0, ((size gm) - 1)) r0
-    (g, r2) = randomR (0, n) r1
+    (g, r2) = randomR (0, sizeOfInsts-1) r1
 
 mkAnt :: (Int, Int) -> Genom -> Ant
 mkAnt coordinates g = (coordinates, 0, (0, 0, 0, 0), [], 0, g)
@@ -183,11 +182,6 @@ fpow :: (a -> a) -> Int -> (a -> a)
 fpow _ 0 = id
 fpow f n = f . (fpow f (n - 1))
 
--- dividIntoの逆関数
-replicateWithRemainder :: (Int, Int) -> [a] -> [[a]]
-replicateWithRemainder (n, 0) xs = replicate n xs
-replicateWithRemainder (n, remainder) xs = (take remainder xs) : (replicate n xs)
-
 randmap :: ((a, StdGen) -> (b, StdGen)) -> ([a], StdGen) -> ([b], StdGen)
 randmap _ ([], r0) = ([], r0)
 randmap f ((x:xs), r0) = ((y:ys), r2)
@@ -196,7 +190,7 @@ randmap f ((x:xs), r0) = ((y:ys), r2)
     (y, r1) = f (x, r0)
 
 flatArray :: [Array Int a] -> Array Int a
-flatArray arys = listArray (0, length xss) $ xss
+flatArray arys = listArray (0, length xss-1) $ xss
   where
     xss = concat $ map elems arys
 
@@ -206,27 +200,43 @@ mapWithIx = mapWithIx' 0
     mapWithIx' _ _ [] = []
     mapWithIx' i f (x:xs) = (f x i : mapWithIx' (i+1) f xs)
 
+slice :: Int -> [a] -> [[a]]
+slice n = unfoldr phi
+  where
+    phi [] = Nothing
+    phi xs = Just $ splitAt n xs
+
+replicateWithRemainder :: (Int, Int) -> [a] -> [[a]]
+replicateWithRemainder (n, 0) xs = replicate n xs
+replicateWithRemainder (n, remainder) xs = concat [(replicate n xs),[(take remainder xs)]]
+
 -- 選ばれた強い蟻から、numOfAnts匹の蟻を作る
-nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> Int -> [Genom] -> Array Int Ant
-nextGeneration spacings n mutationalRate r0 numOfAnts genoms =
-  if length genoms >= numOfAnts
-    then listArray (0, numOfAnts) $
+nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> [Genom] -> Array Int Ant
+nextGeneration spacings sizeOfInsts mutationalRate r0 genoms =
+  if numOfAnts == 0
+    then listArray (0, 0) []
+  else if (length genoms) >= numOfAnts
+    then listArray (0, numOfAnts-1) $
       take numOfAnts $
-        (mapWithIx (mk spacings)) <<< (^. _1) $
+        (mapWithIx (mkAnts spacings)) $ (^. _1) $
           (randmap 
-            (fpow (mutate n) $ round $ ((randomR (0.0, fromIntegral $ length genoms) r0) ^. _1) / mutationalRate)
+            (fpow (mutate sizeOfInsts) $ round $ ((randomR (0.0, fromIntegral $ length genoms) r0) ^. _1) / mutationalRate)
             (genoms, r0))
     else 
-      flatArray $ map (((nextGeneration spacings n mutationalRate r0) & uncurry) <<< (length &&& id)) $
-        replicateWithRemainder ((length genoms) `divMod` numOfAnts) genoms
-    where
-      mk :: [(Int, Int)] -> Genom -> Int -> Ant
-      mk xys a i = mkAnt (certainsure (spacings ^? ix i)) a
-      
-      -- 確実に(たぶん)
-      certainsure :: Maybe (Int, Int) -> (Int, Int)
-      certainsure Nothing = (0, 0)
-      certainsure (Just x) = x
+      flatArray $
+        zipWith (nextGeneration `flip` sizeOfInsts `flip` mutationalRate `flip` r0)
+          (slice (length genoms) spacings)
+          $ replicateWithRemainder (numOfAnts `divMod` (length genoms)) genoms 
+
+  where
+    mkAnts :: [(Int, Int)] -> Genom -> Int -> Ant
+    mkAnts xys g i = mkAnt (certainsure (xys ^? ix i)) g
+    numOfAnts = length spacings
+
+    -- 確実に(たぶん)
+    certainsure :: Maybe (Int, Int) -> (Int, Int)
+    certainsure Nothing = error "Nothing"
+    certainsure (Just x) = x
 
 mkServer :: (Int, Int) -> Server
 mkServer coordinates = (coordinates, array (0, 10) [])
@@ -287,8 +297,9 @@ world1 r0 = toGrPp tuplizedSOEO
       take4 (x:(y:(z:(w:_)))) = (x, y, z, w)
       tuplizedSOEO = take4 soeo
       toGrPp (x, y, z, w) =
-        (nextGeneration x (size insts1) 0.05 r0 50 (replicate 10 ancestor),
+        (nextGeneration x (size insts1) 0.05 r0 (replicate 5 ancestor),
           y,
           z,
           map mkServer w)
-main = print $ mutate (size insts1) (ancestor, (mkStdGen 103))
+
+main = print $ nextGeneration [(4,6),(3,5),(3,5)] (size insts1) 0.05 (mkStdGen 100) (replicate 2 ancestor)
