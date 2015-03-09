@@ -61,7 +61,7 @@ mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
 mutate sizeOfInsts (gm, r0) = (gm // [(i, g)], r2)
   where
     (i, r1) = randomR (0, ((size gm) - 1)) r0
-    (g, r2) = randomR (0, sizeOfInsts-1) r1
+    (g, r2) = randomR (0, (sizeOfInsts - 1)) r1
 
 mkAnt :: (Int, Int) -> Genome -> Ant
 mkAnt coordinates g = (coordinates, 0, (0, 0, 0, 0), [], 0, g)
@@ -146,24 +146,29 @@ mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
 
-wall :: [Int] -> Int -> ObjectNumber
+wall :: [Float] -> Float -> ObjectNumber
 wall = wall' 0 
   where
-    wall' :: Int -> [Int] -> Int -> Int
+    wall' :: ObjectNumber -> [Float] -> Float -> ObjectNumber
     wall' i [x] p = i
     wall' i (x:(y:xs)) p = if p < x then i else wall' (i + 1) ((x + y) : xs) p
 
---relativize :: [Int] -> [Int]
---relativeze = 
+-- ムーア近傍での最短距離は(2次元)チェビジェフ距離で測れる
+chebyshevDistance :: (Int, Int) -> (Int, Int)-> Int
+chebyshevDistance (p0, p1) (q0, q1) = max (abs $ p0 - q0) $ abs $ p1 - q1
+
+-- 二次元ベクトルの列の中で最も近いやつ
+distanceBetweenPtsAndPt :: (Int, Int) -> [(Int, Int)] -> Int
+distanceBetweenPtsAndPt v vs = minimum $ map (chebyshevDistance v) vs
 
 -- アイテム/エージェントの配置を決める
 spacingObjects ::
   StdGen ->
-  [Int -> Int] -- 各々の"傾向"を表す函数列 //note that 傾向性 is 未実装な
+  [[(Int,Int)]] -- 各々の"傾向"を表す二次元ベクトルの列の列
     -> [Int] -- 各アイテム/エージェントの個数を表す列
     -> Int -> Int -- GraphPaperの幅と高さ
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
-spacingObjects r0 fs ns width height = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
+spacingObjects r0 vss ns width height = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
   where 
     spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
     spacingObjects' r0 ns i j xs =
@@ -176,19 +181,35 @@ spacingObjects r0 fs ns width height = array ((0, 0), (width-1, height-1)) $ spa
             then spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) (i+1) j xs
             else spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) 0 (j+1) xs)
       where
-        (x, r1) = randomR (0, ((sum ns) - 1)) r0
-        distances = map (abs <<< ((-) j) <<< ($ i)) fs
-        obj = wall ns x
+        distances = map (distanceBetweenPtsAndPt (i, j)) vss
+        weight :: [Float]
+        weight = map ((/ (fromIntegral $ sum distances)) <<< fromIntegral) distances
+        weightedNs = zipWith (*) (map fromIntegral ns) weight
+        (x, r1) = randomR (0.0, sum weightedNs) r0
+        obj = wall weightedNs x
 
-spacingOfEachObjects :: StdGen -> [Int -> Int] -> [Int] -> Int -> Int -> [[(Int, Int)]]
-spacingOfEachObjects r0 fs ns width height =
+print2dArray :: (Show a) => Array (Int, Int) a -> String
+print2dArray ary2d = print2dArray' ary2d 0 0
+  where
+    print2dArray' :: (Show a) => Array (Int, Int) a -> Int -> Int -> String
+    print2dArray' ary2d i j = 
+      (show (ary2d ! (j, i)))
+        ++ (if i /= width
+          then " " ++ (print2dArray' ary2d (i+1) j)
+          else if j /= height
+            then "\n" ++ (print2dArray' ary2d 0 (j+1))
+            else ".")
+    (_, (width, height)) = bounds ary2d 
+
+spacingOfEachObjects :: StdGen -> [[(Int,Int)]] -> [Int] -> Int -> Int -> [[(Int, Int)]]
+spacingOfEachObjects r0 vss ns width height =
   [[(x, y)
     | x <- [0..width-1], y <- [0..height-1], (aryDim2 ! (x, y)) == i]
       | i <- [0..(length ns)-1]]
   where
-    aryDim2 = spacingObjects r0 fs ns width height 
+    aryDim2 = spacingObjects r0 vss ns width height 
 
--- 遺伝子とその遺伝子の使われ率各々
+-- 各々遺伝子とその遺伝子の使われる率
 popularityOfGenes :: [Genome] -> Int -> [(Int, Int)]
 popularityOfGenes gss sizeOfInsts =
   [(g, length $ concat [[x | x <- (elems gs), x == g] | gs <- gss]) | g <- [0..sizeOfInsts-1]]
