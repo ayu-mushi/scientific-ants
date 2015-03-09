@@ -34,7 +34,7 @@ subAAC :: Instruction
 subAAC i world = world & ((ants <<< (ix i) <<< register <<< _1) %~ (flip (-) cx))
   where
     cx = (reg ^. _1)
-    reg = (world ^. ants) ! i ^. register
+    reg = ((world ^. ants) ! i) ^. register
 
 incA :: Instruction
 incA i world = world & ((ants <<< (ix i) <<< register <<< _1) %~ (+1))
@@ -119,10 +119,9 @@ popD i world =
     else (discard i world) & (ants <<< (ix i) <<< register <<< _4) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
-
 readPattern :: Genome -> Int -> [Int]
 readPattern gs i =
-  if ((size gs) <= i)
+  if ((size gs) <= i || i < 0)
     then []
   else if (gs ! i) == 0
     then 0 : readPattern gs (i + 1)
@@ -140,7 +139,7 @@ reverseTranscriptase = map rt
 
 findForward :: Genome -> Int -> [Int] -> Maybe Int
 findForward gs i pattern =
-  if ((length pattern) <= i || pattern == [])
+  if (size gs) <= i || i < 0 || pattern == []
     then Nothing
   else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
     then Just $ i + (length pattern) + 1
@@ -148,15 +147,15 @@ findForward gs i pattern =
 
 findBackward :: Genome -> Int -> [Int] -> Maybe Int
 findBackward gs i pattern = 
-  if (i < 0 || pattern == [])
+  if i < 0 || (size gs) <= i || pattern == []
     then Nothing
   else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
     then Just $ i + (length pattern) + 1
     else findBackward gs (i - 1) pattern
 
 findMatchTemplate :: Genome -> Int -> SearchDirection -> Maybe Int
-findMatchTemplate gs i Forward = findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
-findMatchTemplate gs i Backward = findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
+findMatchTemplate gs i Forward = if ((size gs) >= i) then Nothing else findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
+findMatchTemplate gs i Backward = if (0 > i) then Nothing else findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
 findMatchTemplate gs i Outward =
   if b == Nothing && f == Nothing then Nothing
   else if (b == Nothing) then f
@@ -172,7 +171,7 @@ jmpo i world = modifing foundAdr
   where
     foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Outward
     modifing Nothing = err i world
-    modifing (Just x) = world & ((ants <<< (ix i) <<< ip) .~ x)
+    modifing (Just x) = world & ((ants <<< (ix i) <<< ip) .~ (x `mod` (size $ theAnt ^. genome)))
     theAnt = (world ^. ants) ! i
 
 jmpb :: Instruction
@@ -180,15 +179,26 @@ jmpb i world = modifing foundAdr
   where
     foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Backward
     modifing Nothing = err i world
-    modifing (Just x) = world & ((ants <<< (ix i) <<< ip) .~ x)
+    modifing (Just x) = world & ((ants <<< (ix i) <<< ip) .~ (x `mod` (size $ theAnt ^. genome)))
     theAnt = (world ^. ants) ! i
 
+call :: Instruction
+call i world =
+  if ip0 == jmpedIP
+    then jmped
+  else 
+    if 10 <= (length $ ((world ^. ants) ! i) ^. stack)
+      then err i jmped
+      else jmped & (ants <<< ix i <<< stack) %~ ((:) ip0)
+  where
+    ip0 = ((world ^. ants) ! i) ^. ip
+    jmped = jmpo i world
+    jmpedIP = ((jmped ^. ants) ! i) ^. ip
 insts1 :: InstructionSet
 insts1 =
-  ((listArray & uncurry) <<< ((const 0 &&& length) &&& id))
+  ((listArray & uncurry) <<< ((const 0 &&& ((flip (-) 1) <<< length)) &&& id))
     [nop, nop,   shl,   zero,  ifz,   subCAB, subAAC, incA, incB, decC,
-    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD, jmpo,
-    jmpb]
+    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD]
   where
     nop :: Instruction
     nop = flip const
