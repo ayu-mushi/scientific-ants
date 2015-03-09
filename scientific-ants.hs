@@ -89,36 +89,48 @@ decC i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ flip (-) 1)
 incC :: Instruction
 incC i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (+1))
 
+err:: Instruction
+err i world = world & ((ants <<< (ix i) <<< hunger) %~ flip (-) 1)
+
 pushA :: Instruction
-pushA i world = world & ((ants <<< (ix i) <<< stack) %~ push ax)
+pushA i world =
+  if (length xs) >= 10 
+    then err i world
+    else world & ((ants <<< (ix i) <<< stack) %~ ((:) ax))
   where
     ax = ((world ^. ants) ! i) ^. (register <<< _1)
-    push x xs = if (length xs) >= 10 then xs else x:xs
+    xs = ((world ^. ants) ! i) ^. stack
 
 pushB :: Instruction
-pushB i world = world & ((ants <<< (ix i) <<< stack) %~ push bx)
+pushB i world =
+  if (length xs) >= 10 
+    then err i world
+    else world & ((ants <<< (ix i) <<< stack) %~ ((:) bx))
   where
     bx = ((world ^. ants) ! i) ^. (register <<< _2)
-    push x xs = if (length xs) >= 10 then xs else x:xs
+    xs = ((world ^. ants) ! i) ^. stack
 
 pushC :: Instruction
-pushC i world = world & ((ants <<< (ix i) <<< stack) %~ push cx)
+pushC i world =
+  if (length xs) >= 10 
+    then err i world
+    else world & ((ants <<< (ix i) <<< stack) %~ ((:) cx))
   where
     cx = ((world ^. ants) ! i) ^. (register <<< _3)
-    push x xs = if (length xs) >= 10 then xs else x:xs
+    xs = ((world ^. ants) ! i) ^. stack
 
 pushD :: Instruction
-pushD i world = world & ((ants <<< (ix i) <<< stack) %~ push dx)
+pushD i world =
+  if (length xs) >= 10 
+    then err i world
+    else world & ((ants <<< (ix i) <<< stack) %~ ((:) cx))
   where
-    dx = ((world ^. ants) ! i) ^. (register <<< _4)
-    push x xs = if (length xs) >= 10 then xs else x:xs
+    cx = ((world ^. ants) ! i) ^. (register <<< _4)
+    xs = ((world ^. ants) ! i) ^. stack
 
 -- スタックの一番上の値を破棄する
 discard :: Instruction
 discard i world = world & (ants <<< (ix i) <<< stack) %~ tail
-
-err:: Instruction
-err i world = world & ((ants <<< (ix i) <<< hunger) %~ flip (-) 1)
 
 popA :: Instruction
 popA i world =
