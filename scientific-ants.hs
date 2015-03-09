@@ -188,6 +188,11 @@ spacingOfEachObjects r0 fs ns width height =
   where
     aryDim2 = spacingObjects r0 fs ns width height 
 
+-- 遺伝子とその遺伝子の使われ率各々
+popularityOfGenes :: [Genome] -> Int -> [(Int, Int)]
+popularityOfGenes gss sizeOfInsts =
+  [(g, length $ concat [[x | x <- (elems gs), x == g] | gs <- gss]) | g <- [0..sizeOfInsts-1]]
+
 -- 或る遺伝子がどれだけ使われているか
 popularityOfTheGene :: [Genome] -> Int -> Int
 popularityOfTheGene gss g = length $ concat [[x | x <- (elems gs), x == g] | gs <- gss] 
