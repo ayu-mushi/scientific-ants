@@ -44,6 +44,7 @@ decC i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ flip (-) 1)
 incC :: Instruction
 incC i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (+1))
 
+-- 手続きの実行が失敗した時などに減点する
 err:: Instruction
 err i world = world & ((ants <<< (ix i) <<< hunger) %~ flip (-) 1)
 

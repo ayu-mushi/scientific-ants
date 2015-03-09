@@ -9,7 +9,6 @@ module ScientificAnts.Simulation where
 import Control.Lens
 import Data.Array
 import Control.Arrow
-import Data.Bits
 import Data.List
 import System.Random
 import Control.Monad
@@ -150,9 +149,6 @@ nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
 mkServer :: (Int, Int) -> Server
 mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
 
-ancestor :: Genome
-ancestor = array (0,3) [(0, 0), (1, 1), (2, 1), (3, 4)]
-
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
 
@@ -197,3 +193,7 @@ spacingOfEachObjects r0 fs ns width height =
       | i <- [0..(length ns)-1]]
   where
     aryDim2 = spacingObjects r0 fs ns width height 
+
+-- 或る遺伝子がどれだけ使われているか
+popularityOfTheGene :: [Genome] -> Int -> Int
+popularityOfTheGene gss g = length $ concat [[x | x <- (elems gs), x == g] | gs <- gss] 
