@@ -11,7 +11,10 @@ import Data.List
 
 import ScientificAnts.Simulation
 
-data SearchDirection = Forward | Backward | Outward
+forGetTheAnt :: (Ant -> Instruction) -> Int -> GraphPaper -> GraphPaper
+forGetTheAnt f i world = f ((world ^. ants) ! i) i world
+
+forSetTheAnt x a i world = world & (ants <<< (ix i) <<< x) .~ a
 
 shl :: Instruction
 shl i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (flip shiftL 1))
@@ -31,26 +34,34 @@ subCAB i world = world & ((ants <<< (ix i) <<< register <<< _3) .~ (ax - bx))
     reg = (world ^. ants) ! i ^. register
 
 subAAC :: Instruction
-subAAC i world = world & ((ants <<< (ix i) <<< register <<< _1) %~ (flip (-) cx))
+subAAC i world = world & (ants <<< (ix i) <<< register <<< _1) -~ cx
   where
     cx = (reg ^. _1)
     reg = ((world ^. ants) ! i) ^. register
 
 incA :: Instruction
-incA i world = world & ((ants <<< (ix i) <<< register <<< _1) %~ (+1))
+incA i world = world & ((ants <<< (ix i) <<< register <<< _1) +~ 1)
 
 incB :: Instruction
-incB i world = world & ((ants <<< (ix i) <<< register <<< _2) %~ (+1))
+incB i world = world & ((ants <<< (ix i) <<< register <<< _2) +~ 1)
 
 decC :: Instruction
-decC i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ flip (-) 1)
+decC i world = world & ((ants <<< (ix i) <<< register <<< _3) -~ 1)
 
 incC :: Instruction
-incC i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (+1))
+incC i world = world & ((ants <<< (ix i) <<< register <<< _3) +~ 1)
 
 -- 手続きの実行が失敗した時などに減点する
 err:: Instruction
-err i world = world & ((ants <<< (ix i) <<< hunger) %~ flip (-) 1)
+err i world = world & ((ants <<< (ix i) <<< hunger) -~ 1)
+
+pushToTheStack :: Int -> Instruction
+pushToTheStack n i world =
+  if (length xs) >= 10
+    then err i world
+    else world & ((ants <<< (ix i) <<< stack) %~ ((:) n))
+  where
+    xs = ((world ^. ants) ! i) ^. stack
 
 pushA :: Instruction
 pushA i world =
@@ -119,6 +130,9 @@ popD i world =
     else (discard i world) & (ants <<< (ix i) <<< register <<< _4) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
+
+data SearchDirection = Forward | Backward | Outward
+
 readPattern :: Genome -> Int -> [Int]
 readPattern gs i =
   if ((size gs) <= i || i < 0)
@@ -194,11 +208,60 @@ call i world =
     ip0 = ((world ^. ants) ! i) ^. ip
     jmped = jmpo i world
     jmpedIP = ((jmped ^. ants) ! i) ^. ip
+
+getSuger :: Int -> Instruction
+getSuger deliciousness i world = world & (ants <<< (ix i) <<< hunger) +~ deliciousness
+
+getSuger0 :: Instruction
+getSuger0 = getSuger 10
+
+getAnteater :: Int -> Instruction
+getAnteater pain i world = world & (ants <<< (ix i) <<< hunger) -~ pain
+
+getAnteater0 :: Instruction
+getAnteater0 = getAnteater 10
+
+-- f is a moving function
+move :: ((Int, Int) -> (Int, Int)) -> Instruction
+move f i world = if 0 < (p ^. _1) || 0 < (p ^. _2) then err i world else movingToThe obj
+  where
+    theAnt = (world ^. ants) ! i -- 蟻が次の瞬間行く予定の場所の座標
+    p :: (Int, Int)
+    p = f (theAnt ^. coordinates) -- 蟻が次の瞬間行く予定の場所に元々なんかいたらそいつのobject番号
+
+    obj :: ObjectNumber
+    obj
+      | p `elem` (map (^. coordinates) $ elems $ world ^. ants) = 1
+      | p `elem` (world ^. sugers)                              = 2
+      | p `elem` (world ^. anteaters)                           = 3
+      | p `elem` (map (^. _1) (world ^. servers))               = 4
+      | otherwise                                               = 0
+    
+    movingToThe :: ObjectNumber -> GraphPaper
+    movingToThe 0 = world & (ants <<< (ix i) <<< coordinates) .~ p -- if 元々居た何か is ｢無｣
+    movingToThe 1 = err i world -- if 元々居た何か is 「蟻」
+    movingToThe 2 = (movingToThe 0) & (getSuger0 i) -- if 元々居た何か is 「砂糖」
+    movingToThe 3 = (movingToThe 0) & (getAnteater0 i) -- if 元々居た何か is 「砂糖」
+    movingToThe 4 = err i world -- if 元々居た何か is 「サーバー」
+
+up :: Instruction
+up = move $ id *** (flip (-) 1)
+ 
+down :: Instruction
+down = move $ id *** (+1)
+
+mvLeft :: Instruction
+mvLeft = move $ (flip (-) 1) *** id
+
+mvRight :: Instruction
+mvRight = move $ (+1) *** id
+
 insts1 :: InstructionSet
 insts1 =
   ((listArray & uncurry) <<< ((const 0 &&& ((flip (-) 1) <<< length)) &&& id))
     [nop, nop,   shl,   zero,  ifz,   subCAB, subAAC, incA, incB, decC,
-    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD]
+    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD, jmpo,
+    up, down, mvLeft, mvRight]
   where
     nop :: Instruction
     nop = flip const
