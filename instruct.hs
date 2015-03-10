@@ -8,6 +8,7 @@ import Control.Monad
 import Data.Array
 import Data.Bits
 import Data.List
+import System.Random
 
 import ScientificAnts.Simulation
 
@@ -223,21 +224,14 @@ getAnteater0 = getAnteater 10
 
 -- f is a moving function
 move :: ((Int, Int) -> (Int, Int)) -> Instruction
-move f i world = if 0 < (p ^. _1) || 0 < (p ^. _2) then err i world else movingToThe obj
+move f i world = movingToThe $ ptToObj world p
   where
     theAnt = (world ^. ants) ! i -- 蟻が次の瞬間行く予定の場所の座標
     p :: (Int, Int)
     p = f (theAnt ^. coordinates) -- 蟻が次の瞬間行く予定の場所に元々なんかいたらそいつのobject番号
-
-    obj :: ObjectNumber
-    obj
-      | p `elem` (map (^. coordinates) $ elems $ world ^. ants) = 1
-      | p `elem` (world ^. sugers)                              = 2
-      | p `elem` (world ^. anteaters)                           = 3
-      | p `elem` (map (^. _1) (world ^. servers))               = 4
-      | otherwise                                               = 0
     
     movingToThe :: ObjectNumber -> GraphPaper
+    movingToThe (-1) = err i world
     movingToThe 0 = world & (ants <<< (ix i) <<< coordinates) .~ p -- if 元々居た何か is ｢無｣
     movingToThe 1 = err i world -- if 元々居た何か is 「蟻」
     movingToThe 2 = (movingToThe 0) & (getSuger0 i) -- if 元々居た何か is 「砂糖」
@@ -256,12 +250,51 @@ mvLeft = move $ (flip (-) 1) *** id
 mvRight :: Instruction
 mvRight = move $ (+1) *** id
 
+check :: ((Int, Int) -> (Int, Int)) -> Instruction
+check f i world = pushToTheStack (ptToObj world (f (theAnt ^. _1))) i world
+  where
+    theAnt = (world ^. ants) ! i
+
+checkU :: Instruction
+checkU = check $ id *** (flip (-) 1)
+
+checkD :: Instruction
+checkD = check $ id *** (+1)
+
+checkL :: Instruction
+checkL = check $ (flip (-) 1) *** id
+
+checkR :: Instruction
+checkR = check $ (+ 1) *** id
+
+rand :: Instruction
+rand i world = (world & (ants <<< (ix i) <<< register <<< _1) .~ x) & grppStdGen .~ r0
+  where
+    (x, r0) = randomR (0, abs ax) $ world ^. grppStdGen
+    ax = ((world ^. ants) ! i) ^. (register <<< _1)
+
 insts1 :: InstructionSet
 insts1 =
   ((listArray & uncurry) <<< ((const 0 &&& ((flip (-) 1) <<< length)) &&& id))
-    [nop, nop,   shl,   zero,  ifz,   subCAB, subAAC, incA, incB, decC,
-    incC, pushA, pushB, pushC, pushD, popA,   popB,   popC, popD, jmpo,
-    up, down, mvLeft, mvRight]
+    [nop, nop,   shl,    zero,    ifz,    subCAB, subAAC, incA,   incB, decC,
+    incC, pushA, pushB,  pushC,   pushD,  popA,   popB,   popC,   popD, jmpo,
+    up,   down,  mvLeft, mvRight, checkU, checkD, checkL, checkR, rand]
   where
     nop :: Instruction
     nop = flip const
+
+asmOfInsts1 :: [String] -> [Int]
+asmOfInsts1 str = map (f <<< elemIndex `flip` ["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
+    "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
+    "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"]) str
+  where
+    f Nothing = -1
+    f (Just x) = x
+
+unasmOfInsts1 :: [Int] -> [String]
+unasmOfInsts1 code = map (\i -> f $ (["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
+    "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
+    "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"] ^? ix i)) code
+  where
+    f Nothing = ""
+    f (Just x) = x
