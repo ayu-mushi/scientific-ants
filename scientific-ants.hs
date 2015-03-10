@@ -70,9 +70,11 @@ mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
 mutate sizeOfInsts (gm, r0) =
   if i == (fromIntegral $ size gm)
     then (listArray (0, size gm) (g : (elems gm)), r2)
-    else (gm // [(i, g)], r2)
+    else if i == -1
+      then (listArray (0, (size gm) - 2) (tail (elems gm)), r2)
+      else (gm // [(i, g)], r2)
   where
-    (i, r1) = randomR (0, size gm) r0
+    (i, r1) = randomR (-1, size gm) r0
     (g, r2) = randomR (0, (sizeOfInsts - 1)) r1
 
 mkAnt :: (Int, Int) -> Genome -> Ant
@@ -234,7 +236,6 @@ popularityOfTheGene gss g = length $ concat [[x | x <- (elems gs), x == g] | gs 
 aCycleOfRefreshing :: InstructionSet -> GraphPaper -> GraphPaper
 aCycleOfRefreshing insts world = view _2 $ fpow (refreshGraphPaper insts) (size $ world ^. ants) (0, world)
 
-genericAlgorithm ::
-  InstructionSet -> Int -> Int -> Int -> ([Genome] -> GraphPaper) -> [Genome] -> [Genome]
+genericAlgorithm :: InstructionSet -> Int -> Int -> Int -> ([Genome] -> GraphPaper) -> [Genome] -> [Genome]
 genericAlgorithm insts nRefresh nGenerate nChoise nextGeneration0 =
   fpow (choise nChoise <<< (^. ants) <<< (fpow (aCycleOfRefreshing insts) nRefresh) <<< nextGeneration0) nGenerate
