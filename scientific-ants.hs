@@ -36,7 +36,7 @@ type Anteater = (Int, Int) -- 「アリジゴク」、英訳分からないしAn
 type Server = ((Int, Int), Array Int Int) -- 「サーバー」
 
 -- 方眼紙、格子状の平面、セル・オートマトンのやつ
-type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server])
+type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server], Int{-width-}, Int{-height-})
 ants :: Lens' GraphPaper (Array Int Ant)
 ants = _1
 sugers :: Lens' GraphPaper [Suger]
@@ -45,6 +45,10 @@ anteaters :: Lens' GraphPaper [Anteater]
 anteaters = _3
 servers :: Lens' GraphPaper [Server]
 servers = _4
+grppWidth :: Lens' GraphPaper Int
+grppWidth = _5
+grppHeight :: Lens' GraphPaper Int
+grppHeight = _6
 
 type Instruction = Int -> GraphPaper -> GraphPaper
 type InstructionSet = Array Int Instruction

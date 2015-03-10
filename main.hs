@@ -27,7 +27,7 @@ mapGenomesToWorld1 r0 gss = toGrPp tuplizedSOEO
     tuplizedSOEO = take5 soeo
     toGrPp :: ([(Int,Int)],[(Int,Int)],[(Int,Int)],[(Int,Int)],[(Int,Int)]) -> GraphPaper
     toGrPp (_, x, y, z, w) =
-      (nextGeneration x (size insts1) 0.05 r0 gss, y, z, map mkServer w)
+      (nextGeneration x (size insts1) 0.05 r0 gss, y, z, map mkServer w, 30, 30)
 
 world1 :: StdGen -> GraphPaper
 world1 r0 = mapGenomesToWorld1 r0 (replicate 10 ancestor1)
