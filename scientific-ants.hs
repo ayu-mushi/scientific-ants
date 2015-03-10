@@ -9,6 +9,7 @@ import Control.Monad
 import Control.Applicative
 import Data.Maybe
 import Data.Array.ST
+import Data.Ratio
 
 type IP = Int
 type Register = (Int, Int, Int, Int)
@@ -17,6 +18,8 @@ type Hunger = Int -- 満腹度
 type Genome = Array Int Int
 
 type Ant = ((Int, Int), IP, Register, Stack, Hunger, Genome) -- 「蟻」
+coordinates :: Lens' Ant (Int, Int)
+coordinates = _1
 ip :: Lens' Ant IP
 ip = _2
 register :: Lens' Ant Register
@@ -36,6 +39,12 @@ type Server = ((Int, Int), Array Int Int) -- 「サーバー」
 type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server])
 ants :: Lens' GraphPaper (Array Int Ant)
 ants = _1
+sugers :: Lens' GraphPaper [Suger]
+sugers = _2
+anteaters :: Lens' GraphPaper [Anteater]
+anteaters = _3
+servers :: Lens' GraphPaper [Server]
+servers = _4
 
 type Instruction = Int -> GraphPaper -> GraphPaper
 type InstructionSet = Array Int Instruction
@@ -58,9 +67,12 @@ refreshGraphPaper insts (i, world) =
       theAnt = (world ^. ants) ! i
 
 mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
-mutate sizeOfInsts (gm, r0) = (gm // [(i, g)], r2)
+mutate sizeOfInsts (gm, r0) =
+  if i == (fromIntegral $ size gm)
+    then (listArray (0, size gm) (g : (elems gm)), r2)
+    else (gm // [(i, g)], r2)
   where
-    (i, r1) = randomR (0, ((size gm) - 1)) r0
+    (i, r1) = randomR (0, size gm) r0
     (g, r2) = randomR (0, (sizeOfInsts - 1)) r1
 
 mkAnt :: (Int, Int) -> Genome -> Ant
@@ -168,7 +180,7 @@ spacingObjects ::
     -> [Int] -- 各アイテム/エージェントの個数を表す列
     -> Int -- GraphPaperの幅
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
-spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 [] 
+spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 []
   where
     height = (sum ns) `div` width
     spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
@@ -183,8 +195,7 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
             else spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) 0 (j+1) xs)
       where
         distances = map (distanceBetweenPtsAndPt (i, j)) vss
-        weight :: [Float]
-        weight = map (((-) 1) <<< (/ (fromIntegral $ sum distances)) <<< fromIntegral) distances
+        weight = map (((-) 1.0) <<< (/ (fromIntegral $ sum distances)) <<< fromIntegral) distances
         weightedNs = zipWith (*) (map fromIntegral ns) weight
         (x, r1) = randomR (0.0, sum weightedNs) r0
         obj = wall weightedNs x
@@ -210,6 +221,7 @@ spacingOfEachObjects r0 vss ns width =
   where
     aryDim2 = spacingObjects r0 vss ns width 
     height = (sum ns) `div` width
+
 -- 各々遺伝子とその遺伝子の使われる率
 popularityOfGenes :: [Genome] -> Int -> [(Int, Int)]
 popularityOfGenes gss sizeOfInsts =
@@ -218,3 +230,11 @@ popularityOfGenes gss sizeOfInsts =
 -- 或る遺伝子がどれだけ使われているか
 popularityOfTheGene :: [Genome] -> Int -> Int
 popularityOfTheGene gss g = length $ concat [[x | x <- (elems gs), x == g] | gs <- gss] 
+
+aCycleOfRefreshing :: InstructionSet -> GraphPaper -> GraphPaper
+aCycleOfRefreshing insts world = view _2 $ fpow (refreshGraphPaper insts) (size $ world ^. ants) (0, world)
+
+genericAlgorithm ::
+  InstructionSet -> Int -> Int -> Int -> ([Genome] -> GraphPaper) -> [Genome] -> [Genome]
+genericAlgorithm insts nRefresh nGenerate nChoise nextGeneration0 =
+  fpow (choise nChoise <<< (^. ants) <<< (fpow (aCycleOfRefreshing insts) nRefresh) <<< nextGeneration0) nGenerate
