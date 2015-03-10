@@ -36,7 +36,7 @@ type Anteater = (Int, Int) -- 「アリジゴク」、英訳分からないしAn
 type Server = ((Int, Int), Array Int Int) -- 「サーバー」
 
 -- 方眼紙、格子状の平面、セル・オートマトンのやつ
-type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server], Int{-width-}, Int{-height-})
+type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server], Int{-width-}, Int{-height-}, StdGen)
 ants :: Lens' GraphPaper (Array Int Ant)
 ants = _1
 sugers :: Lens' GraphPaper [Suger]
@@ -49,6 +49,8 @@ grppWidth :: Lens' GraphPaper Int
 grppWidth = _5
 grppHeight :: Lens' GraphPaper Int
 grppHeight = _6
+grppStdGen :: Lens' GraphPaper StdGen
+grppStdGen = _7
 
 type Instruction = Int -> GraphPaper -> GraphPaper
 type InstructionSet = Array Int Instruction
@@ -72,10 +74,10 @@ refreshGraphPaper insts (i, world) =
 
 mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
 mutate sizeOfInsts (gm, r0) =
-  if i == (fromIntegral $ size gm)
+  if i == (size gm)
     then (listArray (0, size gm) (g : (elems gm)), r2)
     else if i == -1
-      then (listArray (0, (size gm) - 2) (tail (elems gm)), r2)
+      then (if 1 >= (size gm) then (gm, r2) else (listArray (0, (size gm) - 2) (tail (elems gm)), r2))
       else (gm // [(i, g)], r2)
   where
     (i, r1) = randomR (-1, size gm) r0
@@ -199,11 +201,12 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
 
 ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
 ptToObj world p
-  | p `elem` (map (^. coordinates) $ elems $ world ^. ants) = 1
-  | p `elem` (world ^. sugers)                              = 2
-  | p `elem` (world ^. anteaters)                           = 3
-  | p `elem` (map (^. _1) (world ^. servers))               = 4
-  | otherwise                                               = 0
+  | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. grppWidth) <= (p ^. _1) ||  (world ^. grppHeight) <= (p ^. _2) = -1
+  | p `elem` (map (^. coordinates) $ elems $ world ^. ants) =  1
+  | p `elem` (world ^. sugers)                              =  2
+  | p `elem` (world ^. anteaters)                           =  3
+  | p `elem` (map (^. _1) (world ^. servers))               =  4
+  | otherwise                                               =  0
 
 print2dArray :: (Show a) => Array (Int, Int) a -> String
 print2dArray ary2d = print2dArray' ary2d 0 0
@@ -228,8 +231,8 @@ spacingOfEachObjects r0 vss ns width =
     height = (sum ns) `div` width
 
 -- 各々遺伝子とその遺伝子の使われる率
-popularityOfGenes :: [Genome] -> Int -> [(Int, Int)]
-popularityOfGenes gss sizeOfInsts =
+popularityOfGenes :: Int -> [Genome] -> [(Int, Int)]
+popularityOfGenes sizeOfInsts gss =
   [(g, length $ concat [[x | x <- (elems gs), x == g] | gs <- gss]) | g <- [0..sizeOfInsts-1]]
 
 -- 或る遺伝子がどれだけ使われているか

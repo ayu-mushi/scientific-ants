@@ -9,6 +9,7 @@ import Data.Array
 import Data.Bits
 import Data.List
 import System.Random
+import Data.Maybe
 
 import ScientificAnts.Simulation
 
@@ -272,6 +273,30 @@ rand i world = (world & (ants <<< (ix i) <<< register <<< _1) .~ x) & grppStdGen
   where
     (x, r0) = randomR (0, abs ax) $ world ^. grppStdGen
     ax = ((world ^. ants) ! i) ^. (register <<< _1)
+
+movdi :: Instruction
+movdi i world = if ax < 0 || ax > (size $ theAnt ^. genome) then err i world else world & (ants <<< (ix i) <<< genome <<< (ix ax)) .~ bx
+  where
+    theAnt = (world ^. ants) ! i
+    ax = theAnt ^. (register<<<_1)
+    bx = theAnt ^. (register<<<_2)
+
+-- 接触している蟻同士のP2P通信
+attack :: ((Int, Int) -> (Int, Int)) -> Instruction
+attack f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) -~ 5
+  where 
+    theAnt = (world ^. ants) ! i
+    ixOfAntAttackedByTheAnt :: Maybe Int
+    ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
+attackU :: Instruction
+attackU = check $ id *** (flip (-) 1)
+attackD :: Instruction
+attackD = check $ id *** (+1)
+attackL :: Instruction
+attackL = check $ (flip (-) 1) *** id
+attackR :: Instruction
+attackR = check $ (+ 1) *** id
+
 
 insts1 :: InstructionSet
 insts1 =
