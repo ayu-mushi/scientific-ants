@@ -164,20 +164,12 @@ mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
 
-wall :: [Float] -> Float -> ObjectNumber
+wall :: [Int] -> Int -> ObjectNumber
 wall = wall' 0 
   where
-    wall' :: ObjectNumber -> [Float] -> Float -> ObjectNumber
+    wall' :: ObjectNumber -> [Int] -> Int -> ObjectNumber
     wall' i [x] p = i
     wall' i (x:(y:xs)) p = if p < x then i else wall' (i + 1) ((x + y) : xs) p
-
--- ムーア近傍での最短距離は(2次元)チェビジェフ距離で測れる
-chebyshevDistance :: (Int, Int) -> (Int, Int)-> Int
-chebyshevDistance (p0, p1) (q0, q1) = max (abs $ p0 - q0) $ abs $ p1 - q1
-
--- 二次元ベクトルの列の中で最も近いやつ
-distanceBetweenPtsAndPt :: (Int, Int) -> [(Int, Int)] -> Int
-distanceBetweenPtsAndPt v vs = minimum $ map (chebyshevDistance v) vs
 
 -- アイテム/エージェントの配置を決める
 spacingObjects ::
@@ -197,14 +189,21 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
         else
           ((i, j), obj)
           : (if width /= (i + 1)
-            then spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) (i+1) j xs
-            else spacingObjects' r1 (ns & (ix obj) %~ (flip (-) 1)) 0 (j+1) xs)
+            then spacingObjects' r1 (ns & (ix obj) -~ 1) (i+1) j xs
+            else spacingObjects' r1 (ns & (ix obj) -~ 1) 0 (j+1) xs)
       where
-        distances = map (distanceBetweenPtsAndPt (i, j)) vss
-        weight = map (((-) 1.0) <<< (/ (fromIntegral $ sum distances)) <<< fromIntegral) distances
-        weightedNs = zipWith (*) (map fromIntegral ns) weight
-        (x, r1) = randomR (0.0, sum weightedNs) r0
+        weight = map (\x -> if (i,j) `elem` x then 2 else 1) vss
+        weightedNs = zipWith (*) ns weight
+        (x, r1) = randomR (0, (sum weightedNs) - 1) r0
         obj = wall weightedNs x
+
+ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
+ptToObj world p
+  | p `elem` (map (^. coordinates) $ elems $ world ^. ants) = 1
+  | p `elem` (world ^. sugers)                              = 2
+  | p `elem` (world ^. anteaters)                           = 3
+  | p `elem` (map (^. _1) (world ^. servers))               = 4
+  | otherwise                                               = 0
 
 print2dArray :: (Show a) => Array (Int, Int) a -> String
 print2dArray ary2d = print2dArray' ary2d 0 0

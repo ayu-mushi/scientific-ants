@@ -16,9 +16,9 @@ mapGenomesToWorld1 r0 gss = toGrPp tuplizedSOEO
     soeo =
       spacingOfEachObjects r0
         [[(x, x) | x <- [0..30]],
-          [(x, 2*x) | x <- [0..30]],
+          [(x+1, 2*x) | x <- [0..30]],
           [(x, 3*x) | x <- [0..30]],
-          [(x, 4*x) | x <- [0..30]],
+          [(x+1, 4*x) | x <- [0..30]],
           [(x, 5*x) | x <- [0..30]]]
         [20,20,20,20,20]
         30
@@ -33,4 +33,12 @@ world1 :: StdGen -> GraphPaper
 world1 r0 = mapGenomesToWorld1 r0 (replicate 10 ancestor1)
 
 main :: IO ()
-main = print $ popularityOfGenes ((genericAlgorithm insts1 100 50 10 (mapGenomesToWorld1 (mkStdGen 323434))) (replicate 5 ancestor1)) (size insts1)
+main = 
+  putStrLn $ print2dArray $ spacingObjects (mkStdGen 23423)
+        [[(0, 0) | x <- [0..10]],
+          [(x, 1) | x <- [0..10]],
+          [(x, 2) | x <- [0..10]],
+          [(x, 3) | x <- [0..10]],
+          [(x, 4) | x <- [0..10]]]
+        [1,20,20,20,20]
+        9
