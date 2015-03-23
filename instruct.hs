@@ -107,28 +107,28 @@ discard i world = world & (ants <<< (ix i) <<< stack) %~ tail
 
 popA :: Instruction
 popA i world =
-  if (((world ^. ants) ! i) ^. stack) == [] then err i world
+  if null $ ((world ^. ants) ! i) ^. stack then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _1) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popB :: Instruction
 popB i world =
-  if (((world ^. ants) ! i) ^. stack) == [] then err i world
+  if null $ ((world ^. ants) ! i) ^. stack then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _2) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popC :: Instruction
 popC i world = 
-  if (((world ^. ants) ! i) ^. stack) == [] then err i world
+  if null $ ((world ^. ants) ! i) ^. stack then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _3) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
 popD :: Instruction
 popD i world =
-  if (((world ^. ants) ! i) ^. stack) == [] then err i world
+  if null $ ((world ^. ants) ! i) ^. stack then err i world
     else (discard i world) & (ants <<< (ix i) <<< register <<< _4) .~ x
   where
     x = head (((world ^. ants) ! i) ^. stack)
@@ -151,11 +151,11 @@ reverseTranscriptase = map rt
   where
     rt 0 = 1
     rt 1 = 0
-    rt _ = error "reverseTranscriptasing list must be constructed by 0 or 1."
+    rt _ = error "reverseTranscriptasing list must be constructed by only 0 or 1."
 
 findForward :: Genome -> Int -> [Int] -> Maybe Int
 findForward gs i pattern =
-  if (size gs) <= i || i < 0 || pattern == []
+  if (size gs) <= i || i < 0 || null pattern
     then Nothing
   else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
     then Just $ i + (length pattern) + 1
@@ -163,7 +163,7 @@ findForward gs i pattern =
 
 findBackward :: Genome -> Int -> [Int] -> Maybe Int
 findBackward gs i pattern = 
-  if i < 0 || (size gs) <= i || pattern == []
+  if i < 0 || (size gs) <= i || null pattern
     then Nothing
   else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
     then Just $ i + (length pattern) + 1
@@ -173,9 +173,9 @@ findMatchTemplate :: Genome -> Int -> SearchDirection -> Maybe Int
 findMatchTemplate gs i Forward = if ((size gs) >= i) then Nothing else findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
 findMatchTemplate gs i Backward = if (0 > i) then Nothing else findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
 findMatchTemplate gs i Outward =
-  if b == Nothing && f == Nothing then Nothing
-  else if (b == Nothing) then f
-  else if (f == Nothing) then b
+  if isNothing b && isNothing f then Nothing
+  else if isNothing b then f
+  else if isNothing f then b
   else if (fmap abs $ fmap (flip (-) i) b) < (fmap abs $ fmap (flip (-) i) f) then b else f
   where
     b = findBackward gs i $ reverseTranscriptase pattern
@@ -223,6 +223,19 @@ getAnteater pain i world = world & (ants <<< (ix i) <<< hunger) -~ pain
 getAnteater0 :: Instruction
 getAnteater0 = getAnteater 10
 
+-- get coordinates
+cdnU :: (Int, Int) -> (Int, Int)
+cdnU = id *** (flip (-) 1)
+
+cdnD :: (Int, Int) -> (Int, Int)
+cdnD = id *** (+1)
+
+cdnL :: (Int, Int) -> (Int, Int)
+cdnL = (flip (-) 1) *** id
+
+cdnR :: (Int, Int) -> (Int, Int)
+cdnR = (+1) *** id
+
 -- f is a moving function
 move :: ((Int, Int) -> (Int, Int)) -> Instruction
 move f i world = movingToThe $ ptToObj world p
@@ -238,35 +251,27 @@ move f i world = movingToThe $ ptToObj world p
     movingToThe 2 = (movingToThe 0) & (getSuger0 i) -- if 元々居た何か is 「砂糖」
     movingToThe 3 = (movingToThe 0) & (getAnteater0 i) -- if 元々居た何か is 「砂糖」
     movingToThe 4 = err i world -- if 元々居た何か is 「サーバー」
-
-up :: Instruction
-up = move $ id *** (flip (-) 1)
- 
-down :: Instruction
-down = move $ id *** (+1)
-
-mvLeft :: Instruction
-mvLeft = move $ (flip (-) 1) *** id
-
-mvRight :: Instruction
-mvRight = move $ (+1) *** id
+mvU :: Instruction
+mvU = move cdnU
+mvD :: Instruction
+mvD = move cdnD
+mvL :: Instruction
+mvL = move cdnL
+mvR :: Instruction
+mvR = move cdnR
 
 check :: ((Int, Int) -> (Int, Int)) -> Instruction
 check f i world = pushToTheStack (ptToObj world (f (theAnt ^. _1))) i world
   where
     theAnt = (world ^. ants) ! i
-
 checkU :: Instruction
-checkU = check $ id *** (flip (-) 1)
-
+checkU = check cdnU
 checkD :: Instruction
-checkD = check $ id *** (+1)
-
+checkD = check cdnD
 checkL :: Instruction
-checkL = check $ (flip (-) 1) *** id
-
+checkL = check cdnL
 checkR :: Instruction
-checkR = check $ (+ 1) *** id
+checkR = check cdnR
 
 rand :: Instruction
 rand i world = (world & (ants <<< (ix i) <<< register <<< _1) .~ x) & grppStdGen .~ r0
@@ -289,13 +294,13 @@ attack f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world e
     ixOfAntAttackedByTheAnt :: Maybe Int
     ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
 attackU :: Instruction
-attackU = check $ id *** (flip (-) 1)
+attackU = attack cdnU
 attackD :: Instruction
-attackD = check $ id *** (+1)
+attackD = attack cdnD
 attackL :: Instruction
-attackL = check $ (flip (-) 1) *** id
+attackL = attack cdnL
 attackR :: Instruction
-attackR = check $ (+ 1) *** id
+attackR = attack cdnR
 
 reward :: ((Int, Int) -> (Int, Int)) -> Instruction
 reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) +~ 5
@@ -304,13 +309,13 @@ reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world e
     ixOfAntAttackedByTheAnt :: Maybe Int
     ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
 rewardU :: Instruction
-rewardU = check $ id *** (flip (-) 1)
+rewardU = reward cdnU
 rewardD :: Instruction
-rewardD = check $ id *** (+1)
+rewardD = reward cdnD
 rewardL :: Instruction
-rewardL = check $ (flip (-) 1) *** id
+rewardL = reward cdnL
 rewardR :: Instruction
-rewardR = check $ (+ 1) *** id
+rewardR = reward cdnR
 
 mention :: ((Int, Int) -> (Int, Int)) -> Instruction
 mention f i world =
@@ -321,16 +326,16 @@ mention f i world =
     theAnt = (world ^. ants) ! i
     ixOfAntMentionedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
 mentionU :: Instruction
-mentionU = check $ id *** (flip (-) 1)
+mentionU = mention cdnU
 mentionD :: Instruction
-mentionD = check $ id *** (+1)
+mentionD = mention cdnD
 mentionL :: Instruction
-mentionL = check $ (flip (-) 1) *** id
+mentionL = mention cdnL
 mentionR :: Instruction
-mentionR = check $ (+ 1) *** id
+mentionR = mention cdnR
 
 listen :: Instruction
-listen i world = if 10 <= (length (theAnt ^. stack)) || [] == (theAnt ^. ear) then err i world else pushToTheStack (head $ theAnt ^. ear) i world
+listen i world = if 10 <= (length (theAnt ^. stack)) || null (theAnt ^. ear) then err i world else pushToTheStack (head $ theAnt ^. ear) i world
   where
     theAnt = (world ^. ants) ! i
 
@@ -339,18 +344,26 @@ insts1 =
   ((listArray & uncurry) <<< ((const 0 &&& ((flip (-) 1) <<< length)) &&& id))
     [nop, nop,   shl,    zero,    ifz,    subCAB, subAAC, incA,   incB, decC,
     incC, pushA, pushB,  pushC,   pushD,  popA,   popB,   popC,   popD, jmpo,
-    up,   down,  mvLeft, mvRight, checkU, checkD, checkL, checkR, rand, rewardU,
+    mvU,  mvD,   mvL,    mvR,     checkU, checkD, checkL, checkR, rand, rewardU,
     rewardD, rewardL, rewardR, mentionU, mentionD, mentionL, mentionR, listen]
   where
     nop :: Instruction
     nop = flip const
 
-asmOfInsts1 :: [String] -> [Int]
-asmOfInsts1 str = map (fromJust <<< elemIndex `flip` ["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
-    "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
-    "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"]) str
+namesOfInsts1 :: [String]
+namesOfInsts1 =
+  ["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
+   "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
+   "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"]
 
+-- アセンブル
+asmOfInsts1 :: [String] -> [Int]
+asmOfInsts1 = map $ fromJust <<< elemIndex `flip` namesOfInsts1
+
+-- 逆アセンブル
 unasmOfInsts1 :: [Int] -> [String]
-unasmOfInsts1 code = map (\i -> fromJust $ (["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
-    "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
-    "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"] ^? ix i)) code
+unasmOfInsts1 = map $ fromJust <<< ((^?) namesOfInsts1) <<< ix
+
+-- 添字付きで逆アセンブル
+indexedUnasmOfInsts1 :: [Int] -> [(Int, String)]
+indexedUnasmOfInsts1 = (zip [0..]) <<< unasmOfInsts1
