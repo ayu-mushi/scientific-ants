@@ -349,17 +349,17 @@ insts1 =
 namesOfInsts1 :: [String]
 namesOfInsts1 = map (^. _2) namedInsts1
 
-numberOfInst :: String -> Int
-numberOfInst = fromJust <<< elemIndex `flip` namesOfInsts1
+numberOfInst1 :: String -> Int
+numberOfInst1 = fromJust <<< elemIndex `flip` namesOfInsts1
 -- アセンブル
 asmOfInsts1 :: [String] -> [Int]
-asmOfInsts1 = map numberOfInst
+asmOfInsts1 = map numberOfInst1
 
-nameOfInst :: Int -> String
-nameOfInst = fromJust <<< ((^?) namesOfInsts1) <<< ix
+nameOfInst1 :: Int -> String
+nameOfInst1 = fromJust <<< ((^?) namesOfInsts1) <<< ix
 -- 逆アセンブル
 unasmOfInsts1 :: [Int] -> [String]
-unasmOfInsts1 = map nameOfInst
+unasmOfInsts1 = map nameOfInst1
 
 -- 添字付きで逆アセンブル
 indexedUnasmOfInsts1 :: [Int] -> [(Int, String)]
