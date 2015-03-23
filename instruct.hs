@@ -226,13 +226,10 @@ getAnteater0 = getAnteater 10
 -- get coordinates
 cdnU :: (Int, Int) -> (Int, Int)
 cdnU = id *** (flip (-) 1)
-
 cdnD :: (Int, Int) -> (Int, Int)
 cdnD = id *** (+1)
-
 cdnL :: (Int, Int) -> (Int, Int)
 cdnL = (flip (-) 1) *** id
-
 cdnR :: (Int, Int) -> (Int, Int)
 cdnR = (+1) *** id
 
@@ -251,27 +248,11 @@ move f i world = movingToThe $ ptToObj world p
     movingToThe 2 = (movingToThe 0) & (getSuger0 i) -- if 元々居た何か is 「砂糖」
     movingToThe 3 = (movingToThe 0) & (getAnteater0 i) -- if 元々居た何か is 「砂糖」
     movingToThe 4 = err i world -- if 元々居た何か is 「サーバー」
-mvU :: Instruction
-mvU = move cdnU
-mvD :: Instruction
-mvD = move cdnD
-mvL :: Instruction
-mvL = move cdnL
-mvR :: Instruction
-mvR = move cdnR
 
 check :: ((Int, Int) -> (Int, Int)) -> Instruction
 check f i world = pushToTheStack (ptToObj world (f (theAnt ^. _1))) i world
   where
     theAnt = (world ^. ants) ! i
-checkU :: Instruction
-checkU = check cdnU
-checkD :: Instruction
-checkD = check cdnD
-checkL :: Instruction
-checkL = check cdnL
-checkR :: Instruction
-checkR = check cdnR
 
 rand :: Instruction
 rand i world = (world & (ants <<< (ix i) <<< register <<< _1) .~ x) & grppStdGen .~ r0
@@ -293,14 +274,6 @@ attack f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world e
     theAnt = (world ^. ants) ! i
     ixOfAntAttackedByTheAnt :: Maybe Int
     ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
-attackU :: Instruction
-attackU = attack cdnU
-attackD :: Instruction
-attackD = attack cdnD
-attackL :: Instruction
-attackL = attack cdnL
-attackR :: Instruction
-attackR = attack cdnR
 
 reward :: ((Int, Int) -> (Int, Int)) -> Instruction
 reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) +~ 5
@@ -308,14 +281,6 @@ reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world e
     theAnt = (world ^. ants) ! i
     ixOfAntAttackedByTheAnt :: Maybe Int
     ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
-rewardU :: Instruction
-rewardU = reward cdnU
-rewardD :: Instruction
-rewardD = reward cdnD
-rewardL :: Instruction
-rewardL = reward cdnL
-rewardR :: Instruction
-rewardR = reward cdnR
 
 mention :: ((Int, Int) -> (Int, Int)) -> Instruction
 mention f i world =
@@ -325,14 +290,6 @@ mention f i world =
   where
     theAnt = (world ^. ants) ! i
     ixOfAntMentionedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
-mentionU :: Instruction
-mentionU = mention cdnU
-mentionD :: Instruction
-mentionD = mention cdnD
-mentionL :: Instruction
-mentionL = mention cdnL
-mentionR :: Instruction
-mentionR = mention cdnR
 
 listen :: Instruction
 listen i world = if 10 <= (length (theAnt ^. stack)) || null (theAnt ^. ear) then err i world else pushToTheStack (head $ theAnt ^. ear) i world
@@ -361,23 +318,23 @@ namedInsts1 =
     (17,  "popC", popC),
     (18,  "popD", popD),
     (19,  "jmpo", jmpo),
-    (20,   "mvU", mvU),
-    (21,   "mvD", mvD),
-    (22,   "mvL", mvL),
-    (23,   "mvR", mvR),
-    (24,"checkU", checkU),
-    (25,"checkD", checkD),
-    (26,"checkL", checkL),
-    (27,"checkR", checkR),
+    (20,   "mvU", move cdnU),
+    (21,   "mvD", move cdnD),
+    (22,   "mvL", move cdnL),
+    (23,   "mvR", move cdnR),
+    (24,"checkU", check cdnU),
+    (25,"checkD", check cdnD),
+    (26,"checkL", check cdnL),
+    (27,"checkR", check cdnR),
     (28,  "rand", rand),
-    (29,"rewardU", rewardU),
-    (30,"rewardD", rewardD),
-    (31,"rewardL", rewardL),
-    (32,"rewardR", rewardR),
-    (33,"mentionU", mentionU),
-    (34,"mentionD", mentionD),
-    (35,"mentionL", mentionL),
-    (36,"mentionR", mentionR),
+    (29,"rewardU", reward cdnU),
+    (30,"rewardD", reward cdnD),
+    (31,"rewardL", reward cdnL),
+    (32,"rewardR", reward cdnR),
+    (33,"mentionU", mention cdnU),
+    (34,"mentionD", mention cdnD),
+    (35,"mentionL", mention cdnL),
+    (36,"mentionR", mention cdnR),
     (37,  "listen", listen)]
   where
     nop :: Instruction
@@ -390,9 +347,7 @@ insts1 =
     removeName (n, name, inst) = (n, inst)
 
 namesOfInsts1 :: [String]
-namesOfInsts1 = map getName namedInsts1
-  where
-    getName (n, name, inst) = name
+namesOfInsts1 = map (^. _2) namedInsts1
 
 -- アセンブル
 asmOfInsts1 :: [String] -> [Int]
