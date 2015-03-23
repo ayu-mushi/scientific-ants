@@ -16,8 +16,9 @@ type Register = (Int, Int, Int, Int)
 type Stack = [Int]
 type Hunger = Int -- 満腹度
 type Genome = Array Int Int
+type Ear = [Int]
 
-type Ant = ((Int, Int), IP, Register, Stack, Hunger, Genome) -- 「蟻」
+type Ant = ((Int, Int), IP, Register, Stack, Hunger, Genome, Ear) -- 「蟻」
 coordinates :: Lens' Ant (Int, Int)
 coordinates = _1
 ip :: Lens' Ant IP
@@ -30,6 +31,8 @@ hunger :: Lens' Ant Hunger
 hunger = _5
 stack :: Lens' Ant Stack
 stack = _4
+ear :: Lens' Ant Ear
+ear = _7
 
 type Suger = (Int, Int) -- 「砂糖」
 type Anteater = (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
@@ -84,7 +87,7 @@ mutate sizeOfInsts (gm, r0) =
     (g, r2) = randomR (0, (sizeOfInsts - 1)) r1
 
 mkAnt :: (Int, Int) -> Genome -> Ant
-mkAnt coordinates g = (coordinates, 0, (0, 0, 0, 0), [], 0, g)
+mkAnt coordinates g = (coordinates, 0, (0, 0, 0, 0), [], 0, g, [])
 
 -- 選択、満腹度最高よりn匹のゲノム
 choise :: Int -> Array Int Ant -> [Genome]
@@ -231,9 +234,9 @@ spacingOfEachObjects r0 vss ns width =
     height = (sum ns) `div` width
 
 -- 各々遺伝子とその遺伝子の使われる率
-popularityOfGenes :: Int -> [Genome] -> [(Int, Int)]
-popularityOfGenes sizeOfInsts gss =
-  [(g, length $ concat [[x | x <- (elems gs), x == g] | gs <- gss]) | g <- [0..sizeOfInsts-1]]
+popularityOfGenes :: (Int -> String) -> Int -> [Genome] -> [(String, Int)]
+popularityOfGenes nameOfInst sizeOfInsts gss =
+  [(nameOfInst g, length $ concat [[x | x <- (elems gs), x == g] | gs <- gss]) | g <- [0..sizeOfInsts-1]]
 
 -- 或る遺伝子がどれだけ使われているか
 popularityOfTheGene :: [Genome] -> Int -> Int

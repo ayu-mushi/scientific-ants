@@ -45,18 +45,18 @@ experiment1 = putStrLn $
   (show $ map (\r0 -> (popularityOfTheGene
     (genericAlgorithm
       (insts1
-        // [(numberOfInst "rewardU", flip const),
-          (numberOfInst "rewardD", flip const),
-          (numberOfInst "rewardL", flip const),
-          (numberOfInst "rewardR", flip const)])
+        // [(numberOfInst1 "rewardU", flip const),
+          (numberOfInst1 "rewardD", flip const),
+          (numberOfInst1 "rewardL", flip const),
+          (numberOfInst1 "rewardR", flip const)])
       50 10 10 (mapGenomesToWorld1 (mkStdGen r0)) (replicate 10 ancestor1)))
-      $ numberOfInst "mentionU") [143243..143253])
+      $ numberOfInst1 "mentionU") [143243..143253])
   ++ "\n" ++
   (show $ map (\r0 -> popularityOfTheGene
     (genericAlgorithm
       insts1
       50 10 10 (mapGenomesToWorld1 (mkStdGen r0)) (replicate 10 ancestor1))
-      $ numberOfInst "mentionU") [45823..45833])
+      $ numberOfInst1 "mentionU") [45823..45833])
 
 main :: IO ()
 main = experiment1
