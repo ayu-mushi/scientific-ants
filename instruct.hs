@@ -339,22 +339,60 @@ listen i world = if 10 <= (length (theAnt ^. stack)) || null (theAnt ^. ear) the
   where
     theAnt = (world ^. ants) ! i
 
-insts1 :: InstructionSet
-insts1 =
-  ((listArray & uncurry) <<< ((const 0 &&& ((flip (-) 1) <<< length)) &&& id))
-    [nop, nop,   shl,    zero,    ifz,    subCAB, subAAC, incA,   incB, decC,
-    incC, pushA, pushB,  pushC,   pushD,  popA,   popB,   popC,   popD, jmpo,
-    mvU,  mvD,   mvL,    mvR,     checkU, checkD, checkL, checkR, rand, rewardU,
-    rewardD, rewardL, rewardR, mentionU, mentionD, mentionL, mentionR, listen]
+namedInsts1 :: [(Int, String, Instruction)]
+namedInsts1 =
+  [(0,    "nop0", nop),
+    (1,    "nop1", nop),
+    (2,    "shl", shl),
+    (3,   "zero", zero),
+    (4,    "ifz", ifz),
+    (5, "subCAB", subCAB),
+    (6, "subAAC", subAAC),
+    (7,   "incA", incA),
+    (8,   "incB", incB),
+    (9,   "decC", decC),
+    (10,   "incC", incC),
+    (11, "pushA", pushA),
+    (12, "pushB", pushB),
+    (13, "pushC", pushC),
+    (14, "pushD", pushD),
+    (15,  "popA", popA),
+    (16,  "popB", popB),
+    (17,  "popC", popC),
+    (18,  "popD", popD),
+    (19,  "jmpo", jmpo),
+    (20,   "mvU", mvU),
+    (21,   "mvD", mvD),
+    (22,   "mvL", mvL),
+    (23,   "mvR", mvR),
+    (24,"checkU", checkU),
+    (25,"checkD", checkD),
+    (26,"checkL", checkL),
+    (27,"checkR", checkR),
+    (28,  "rand", rand),
+    (29,"rewardU", rewardU),
+    (30,"rewardD", rewardD),
+    (31,"rewardL", rewardL),
+    (32,"rewardR", rewardR),
+    (33,"mentionU", mentionU),
+    (34,"mentionD", mentionD),
+    (35,"mentionL", mentionL),
+    (36,"mentionR", mentionR),
+    (37,  "listen", listen)]
   where
     nop :: Instruction
     nop = flip const
 
+insts1 :: InstructionSet
+insts1 =
+  (array & uncurry) $ (((,) 0) <<< (flip (-) 1) <<< length) &&& (map removeName) $ namedInsts1
+  where
+    removeName (n, name, inst) = (n, inst)
+
 namesOfInsts1 :: [String]
-namesOfInsts1 =
-  ["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
-   "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
-   "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"]
+namesOfInsts1 = map getName namedInsts1
+  where
+    getName (n, name, inst) = name
 
 -- アセンブル
 asmOfInsts1 :: [String] -> [Int]
