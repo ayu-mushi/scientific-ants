@@ -7,9 +7,11 @@ import Control.Arrow
 import Data.Array
 import Data.List
 
--- methods of experiment
 ancestor1 :: Genome
-ancestor1 = array (0, 6) [(0, 4), (1, 7), (2, 4), (3, 8), (4, 5), (5, 8), (6,1)]
+ancestor1 = (listArray & uncurry) $
+  (((,) 0) <<< (flip (-) 1) <<< length) &&& id $
+    asmOfInsts1 $
+      ["checkU", "checkD", "checkL", "checkR"]
 
 mapGenomesToWorld1 :: StdGen -> [Genome] -> GraphPaper
 mapGenomesToWorld1 r0 gss = toGrPp tuplizedSOEO
@@ -21,7 +23,7 @@ mapGenomesToWorld1 r0 gss = toGrPp tuplizedSOEO
           [(x, 5) | x <- [0..10]],
           [(x+1, 4*x) | x <- [0..10]],
           [(x, 5*x) | x <- [0..10]]]
-        [20,30,10,20,20]
+        [0,50,30,20,0]
         10
     take5 :: [a] -> (a, a, a, a, a)
     take5 (x:(y:(z:(w:(v:_))))) = (x, y, z, w, v)
@@ -33,8 +35,28 @@ mapGenomesToWorld1 r0 gss = toGrPp tuplizedSOEO
 world1 :: StdGen -> GraphPaper
 world1 r0 = mapGenomesToWorld1 r0 (replicate 10 ancestor1)
 
-example0 :: IO ()
-example0 = putStrLn $ concat $ intersperse "\n\n" $ map (concat<<<(intersperse " ")<<<unasmOfInsts1<<<elems) $ genericAlgorithm insts1 50 100 10 (mapGenomesToWorld1 (mkStdGen 324243)) (replicate 10 ancestor1)
+justGenomesExample0 :: IO ()
+justGenomesExample0 = putStrLn $ concat $ intersperse "\n\n" $ map (concat<<<(intersperse " ")<<<unasmOfInsts1<<<elems) $ genericAlgorithm insts1 50 100 10 (mapGenomesToWorld1 (mkStdGen 324243)) (replicate 10 ancestor1)
+
+-- methods of experiment
+-- Axelrod「An Evolutionary Approach to Norm」風に、報酬の有無によって協調(情報提供)率が上がるかを調べる
+experiment1 :: IO ()
+experiment1 = putStrLn $
+  (show $ map (\r0 -> (popularityOfTheGene
+    (genericAlgorithm
+      (insts1
+        // [(numberOfInst "rewardU", flip const),
+          (numberOfInst "rewardD", flip const),
+          (numberOfInst "rewardL", flip const),
+          (numberOfInst "rewardR", flip const)])
+      50 10 10 (mapGenomesToWorld1 (mkStdGen r0)) (replicate 10 ancestor1)))
+      $ numberOfInst "mentionU") [143243..143253])
+  ++ "\n" ++
+  (show $ map (\r0 -> popularityOfTheGene
+    (genericAlgorithm
+      insts1
+      50 10 10 (mapGenomesToWorld1 (mkStdGen r0)) (replicate 10 ancestor1))
+      $ numberOfInst "mentionU") [45823..45833])
 
 main :: IO ()
-main = print $ popularityOfGenes (size insts1) $ genericAlgorithm insts1 50 100 10 (mapGenomesToWorld1 (mkStdGen 324243)) (replicate 10 ancestor1)
+main = experiment1
