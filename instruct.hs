@@ -297,29 +297,60 @@ attackL = check $ (flip (-) 1) *** id
 attackR :: Instruction
 attackR = check $ (+ 1) *** id
 
+reward :: ((Int, Int) -> (Int, Int)) -> Instruction
+reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) +~ 5
+  where 
+    theAnt = (world ^. ants) ! i
+    ixOfAntAttackedByTheAnt :: Maybe Int
+    ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
+rewardU :: Instruction
+rewardU = check $ id *** (flip (-) 1)
+rewardD :: Instruction
+rewardD = check $ id *** (+1)
+rewardL :: Instruction
+rewardL = check $ (flip (-) 1) *** id
+rewardR :: Instruction
+rewardR = check $ (+ 1) *** id
+
+mention :: ((Int, Int) -> (Int, Int)) -> Instruction
+mention f i world =
+  if 1 /= (ptToObj world $ f $ theAnt ^. _1) || 0 == (length $ theAnt ^. stack)
+    then err i world
+    else world & (ants <<< (ix (fromJust ixOfAntMentionedByTheAnt) <<< ear)) %~ ((:) $ head $ theAnt ^. stack) & discard i
+  where
+    theAnt = (world ^. ants) ! i
+    ixOfAntMentionedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
+mentionU :: Instruction
+mentionU = check $ id *** (flip (-) 1)
+mentionD :: Instruction
+mentionD = check $ id *** (+1)
+mentionL :: Instruction
+mentionL = check $ (flip (-) 1) *** id
+mentionR :: Instruction
+mentionR = check $ (+ 1) *** id
+
+listen :: Instruction
+listen i world = if 10 <= (length (theAnt ^. stack)) || [] == (theAnt ^. ear) then err i world else pushToTheStack (head $ theAnt ^. ear) i world
+  where
+    theAnt = (world ^. ants) ! i
 
 insts1 :: InstructionSet
 insts1 =
   ((listArray & uncurry) <<< ((const 0 &&& ((flip (-) 1) <<< length)) &&& id))
     [nop, nop,   shl,    zero,    ifz,    subCAB, subAAC, incA,   incB, decC,
     incC, pushA, pushB,  pushC,   pushD,  popA,   popB,   popC,   popD, jmpo,
-    up,   down,  mvLeft, mvRight, checkU, checkD, checkL, checkR, rand]
+    up,   down,  mvLeft, mvRight, checkU, checkD, checkL, checkR, rand, rewardU,
+    rewardD, rewardL, rewardR, mentionU, mentionD, mentionL, mentionR, listen]
   where
     nop :: Instruction
     nop = flip const
 
 asmOfInsts1 :: [String] -> [Int]
-asmOfInsts1 str = map (f <<< elemIndex `flip` ["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
+asmOfInsts1 str = map (fromJust <<< elemIndex `flip` ["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
     "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
     "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"]) str
-  where
-    f Nothing = -1
-    f (Just x) = x
 
 unasmOfInsts1 :: [Int] -> [String]
-unasmOfInsts1 code = map (\i -> f $ (["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
+unasmOfInsts1 code = map (\i -> fromJust $ (["nop", "nop",   "shl",    "zero",    "ifz",    "subCAB", "subAAC", "incA",   "incB", "decC",
     "incC", "pushA", "pushB",  "pushC",   "pushD",  "popA",   "popB",   "popC",   "popD", "jmpo",
     "up",  "down",  "mvLeft", "mvRight", "checkU", "checkD", "checkL", "checkR", "rand"] ^? ix i)) code
-  where
-    f Nothing = ""
-    f (Just x) = x
