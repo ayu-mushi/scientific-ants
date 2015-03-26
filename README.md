@@ -12,4 +12,4 @@ scientific-ants.hs
 
 Tierra風に表された遺伝子列を遺伝的アルゴリズムで進化させる
 
-MIT
+ライセンスはMIT
