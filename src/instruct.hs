@@ -17,9 +17,9 @@ import ScientificAnts.Simulation
 getTheAnt :: (Ant -> Instruction) -> Instruction
 getTheAnt f i world = f ((world ^. ants) ! i) i world
 
-modifyTheAnt's x f i world = world & (ants <<< (ix i) <<< x) %~ f
+modifyTheAnt's x f i = (ants <<< (ix i) <<< x) %~ f
 
-setTheAnt's x a i world = world & (ants <<< (ix i) <<< x) .~ a
+setTheAnt's x a i = (ants <<< (ix i) <<< x) .~ a
 
 shl :: Instruction
 shl = modifyTheAnt's (register <<< _3) $ flip shiftL 1

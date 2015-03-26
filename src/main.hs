@@ -24,14 +24,14 @@ mapGenomesToWorld1 r0 gss = toGrPp $
       10
   where
     toGrPp :: [[(Int, Int)]] -> GraphPaper
-    toGrPp (_:(sAnt:(sSuger:(sAnteater:(sServer:_))))) =
+    toGrPp (_:(sAnt:(sSuger:(sAnteater:(sServer:_))))) = -- sは`spacing of'の略
       (nextGeneration sAnt (size insts1) 0.001 r0 gss, sSuger, sAnteater, map mkServer sServer, 30, 30, r0)
 
 world1 :: StdGen -> GraphPaper
-world1 r0 = mapGenomesToWorld1 r0 (replicate 10 ancestor1)
+world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1
 
 justGenomesExample0 :: IO ()
-justGenomesExample0 = putStrLn $ concat $ intersperse "\n\n" $ map (concat<<<(intersperse " ")<<<unasmOfInsts1<<<elems) $ genericAlgorithm insts1 50 100 10 (mapGenomesToWorld1 (mkStdGen 324243)) (replicate 10 ancestor1)
+justGenomesExample0 = putStrLn $ concat $ intersperse "\n\n" $ map (concat <<< (intersperse " ") <<< unasmOfInsts1 <<< elems) $ genericAlgorithm insts1 50 100 10 (mapGenomesToWorld1 (mkStdGen 324243)) (replicate 10 ancestor1)
 
 -- methods of experiments
 -- Axelrod「An Evolutionary Approach to Norm」風に、報酬の有無によって協調(情報提供)率が上がるかを調べる
