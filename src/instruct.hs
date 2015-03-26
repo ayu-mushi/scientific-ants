@@ -5,6 +5,7 @@ module ScientificAnts.InstructionSet where
 import Control.Lens
 import Control.Arrow
 import Control.Monad
+import Control.Applicative
 import Data.Array
 import Data.Bits
 import Data.List
@@ -13,16 +14,18 @@ import Data.Maybe
 
 import ScientificAnts.Simulation
 
-forGetTheAnt :: (Ant -> Instruction) -> Int -> GraphPaper -> GraphPaper
-forGetTheAnt f i world = f ((world ^. ants) ! i) i world
+getTheAnt :: (Ant -> Instruction) -> Instruction
+getTheAnt f i world = f ((world ^. ants) ! i) i world
 
-forSetTheAnt x a i world = world & (ants <<< (ix i) <<< x) .~ a
+modifyTheAnt's x f i world = world & (ants <<< (ix i) <<< x) %~ f
+
+setTheAnt's x a i world = world & (ants <<< (ix i) <<< x) .~ a
 
 shl :: Instruction
-shl i world = world & ((ants <<< (ix i) <<< register <<< _3) %~ (flip shiftL 1))
+shl = modifyTheAnt's (register <<< _3) $ flip shiftL 1
 
 zero :: Instruction
-zero i world = world & ((ants <<< (ix i) <<< register <<< _3) .~ 0)
+zero = setTheAnt's (register <<< _3) 0
 
 ifz :: Instruction
 ifz i world = if cx == 0 then world else incIP i world
@@ -42,26 +45,26 @@ subAAC i world = world & (ants <<< (ix i) <<< register <<< _1) -~ cx
     reg = ((world ^. ants) ! i) ^. register
 
 incA :: Instruction
-incA i world = world & ((ants <<< (ix i) <<< register <<< _1) +~ 1)
+incA = modifyTheAnt's (register <<< _1) (+ 1)
 
 incB :: Instruction
-incB i world = world & ((ants <<< (ix i) <<< register <<< _2) +~ 1)
+incB = modifyTheAnt's (register <<< _2) (+ 1)
 
 decC :: Instruction
-decC i world = world & ((ants <<< (ix i) <<< register <<< _3) -~ 1)
+decC = modifyTheAnt's (register <<< _3) $ flip (-) 1
 
 incC :: Instruction
-incC i world = world & ((ants <<< (ix i) <<< register <<< _3) +~ 1)
+incC = modifyTheAnt's (register <<< _3) (+ 1)
 
 -- 手続きの実行が失敗した時などに減点する
 err:: Instruction
-err i world = world & ((ants <<< (ix i) <<< hunger) -~ 1)
+err = modifyTheAnt's hunger $ flip (-) 1
 
 pushToTheStack :: Int -> Instruction
-pushToTheStack n i world =
+pushToTheStack x i world =
   if (length xs) >= 10
     then err i world
-    else world & ((ants <<< (ix i) <<< stack) %~ ((:) n))
+    else world & ((ants <<< (ix i) <<< stack) %~ ((:) x))
   where
     xs = ((world ^. ants) ! i) ^. stack
 
@@ -103,7 +106,7 @@ pushD i world =
 
 -- スタックの一番上の値を破棄する
 discard :: Instruction
-discard i world = world & (ants <<< (ix i) <<< stack) %~ tail
+discard = modifyTheAnt's stack tail
 
 popA :: Instruction
 popA i world =
@@ -151,7 +154,7 @@ reverseTranscriptase = map rt
   where
     rt 0 = 1
     rt 1 = 0
-    rt _ = error "reverseTranscriptasing list must be constructed by only 0 or 1."
+    rt _ = error "reverseTranscriptasing list must consist of only 0 or 1."
 
 findForward :: Genome -> Int -> [Int] -> Maybe Int
 findForward gs i pattern =
@@ -234,6 +237,7 @@ cdnR :: (Int, Int) -> (Int, Int)
 cdnR = (+1) *** id
 
 -- f is a moving function
+-- TODO: 食われた砂糖は消えるように
 move :: ((Int, Int) -> (Int, Int)) -> Instruction
 move f i world = movingToThe $ ptToObj world p
   where
@@ -296,6 +300,9 @@ listen i world = if 10 <= (length (theAnt ^. stack)) || null (theAnt ^. ear) the
   where
     theAnt = (world ^. ants) ! i
 
+nop :: Instruction
+nop = flip const
+
 namedInsts1 :: [(Int, String, Instruction)]
 namedInsts1 =
   [(0,    "nop0", nop),
@@ -336,13 +343,10 @@ namedInsts1 =
     (35,"mentionL", mention cdnL),
     (36,"mentionR", mention cdnR),
     (37,  "listen", listen)]
-  where
-    nop :: Instruction
-    nop = flip const
 
 insts1 :: InstructionSet
 insts1 =
-  (array & uncurry) $ (((,) 0) <<< (flip (-) 1) <<< length) &&& (map removeName) $ namedInsts1
+  (array <<< ((,) 0) <<< (flip (-) 1) <<< length) <*> (map removeName) $ namedInsts1
   where
     removeName (n, name, inst) = (n, inst)
 
@@ -351,12 +355,14 @@ namesOfInsts1 = map (^. _2) namedInsts1
 
 numberOfInst1 :: String -> Int
 numberOfInst1 = fromJust <<< elemIndex `flip` namesOfInsts1
+
 -- アセンブル
 asmOfInsts1 :: [String] -> [Int]
 asmOfInsts1 = map numberOfInst1
 
 nameOfInst1 :: Int -> String
 nameOfInst1 = fromJust <<< ((^?) namesOfInsts1) <<< ix
+
 -- 逆アセンブル
 unasmOfInsts1 :: [Int] -> [String]
 unasmOfInsts1 = map nameOfInst1
