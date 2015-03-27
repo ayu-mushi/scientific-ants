@@ -155,13 +155,8 @@ nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
 
   where
     mkAnts :: [(Int, Int)] -> Genome -> Int -> Ant
-    mkAnts xys g i = mkAnt (certainsure (xys ^? ix i)) g
+    mkAnts xys g i = mkAnt (fromJust (xys ^? ix i)) g
     numOfAnts = length spacings
-
-    -- 確実に(たぶん)
-    certainsure :: Maybe (Int, Int) -> (Int, Int)
-    certainsure Nothing = error "Nothing"
-    certainsure (Just x) = x
 
 mkServer :: (Int, Int) -> Server
 mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
