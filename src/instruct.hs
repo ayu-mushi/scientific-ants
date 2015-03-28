@@ -259,9 +259,9 @@ check f i world = pushToTheStack (ptToObj world (f (theAnt ^. coords))) i world
     theAnt = (world ^. ants) ! i
 
 rand :: Instruction
-rand i world = (world & (ants <<< (ix i) <<< register <<< _1) .~ x) & grppStdGen .~ r0
+rand i world = (world & (ants <<< (ix i) <<< register <<< _1) .~ x) & gen .~ r0
   where
-    (x, r0) = randomR (0, abs ax) $ world ^. grppStdGen
+    (x, r0) = randomR (0, abs ax) $ world ^. gen
     ax = ((world ^. ants) ! i) ^. (register <<< _1)
 
 movdi :: Instruction

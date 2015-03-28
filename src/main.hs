@@ -25,7 +25,7 @@ mapGenomesToWorld1 r0 gss = toGrPp $
   where
     toGrPp :: [[(Int, Int)]] -> GraphPaper
     toGrPp (_:(sAnt:(sSuger:(sAnteater:(sServer:_))))) = -- sは`spacing of'の略
-      (nextGeneration sAnt (size insts1) 0.001 r0 gss, sSuger, sAnteater, map mkServer sServer, 30, 30, r0)
+      GraphPaper { _ants = nextGeneration sAnt (size insts1) 0.001 r0 gss, _sugers = sSuger, _anteaters = sAnteater, _servers = map mkServer sServer, _width = 30, _height = 30, _gen = r0 }
 
 world1 :: StdGen -> GraphPaper
 world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1

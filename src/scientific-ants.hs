@@ -20,7 +20,7 @@ type Hunger = Int -- 満腹度
 type Genome = Array Int Int
 type Ear = [Int]
 
-data Ant = Ant
+data Ant = Ant -- 「蟻」
   { _coords :: (Int, Int)
   , _ip :: IP
   , _register :: Register
@@ -36,7 +36,7 @@ type Anteater = (Int, Int) -- 「アリジゴク」、英訳分からないしAn
 type Server = ((Int, Int), Array Int Int) -- 「サーバー」
 
 -- 方眼紙、格子状の平面、セル・オートマトンのやつ
-type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server], Int{-width-}, Int{-height-}, StdGen)
+{-type GraphPaper = (Array Int Ant, [Suger], [Anteater], [Server], Int{-width-}, Int{-height-}, StdGen)
 ants :: Lens' GraphPaper (Array Int Ant)
 ants = _1
 sugers :: Lens' GraphPaper [Suger]
@@ -50,7 +50,18 @@ grppWidth = _5
 grppHeight :: Lens' GraphPaper Int
 grppHeight = _6
 grppStdGen :: Lens' GraphPaper StdGen
-grppStdGen = _7
+grppStdGen = _7-}
+
+data GraphPaper = GraphPaper
+  { _ants :: Array Int Ant
+  , _sugers :: [Suger]
+  , _anteaters :: [Anteater]
+  , _servers :: [Server]
+  , _width :: Int
+  , _height :: Int
+  , _gen :: StdGen
+  }
+makeLenses ''GraphPaper
 
 type Instruction = Int -> GraphPaper -> GraphPaper
 type InstructionSet = Array Int Instruction
@@ -202,7 +213,7 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
 
 ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
 ptToObj world p
-  | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. grppWidth) <= (p ^. _1) ||  (world ^. grppHeight) <= (p ^. _2) = -1
+  | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. width) <= (p ^. _1) ||  (world ^. height) <= (p ^. _2) = -1
   | p `elem` (map (^. coords) $ elems $ world ^. ants) =  1
   | p `elem` (world ^. sugers)                              =  2
   | p `elem` (world ^. anteaters)                           =  3
