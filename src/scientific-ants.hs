@@ -198,7 +198,7 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
 ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
 ptToObj world p
   | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. width) <= (p ^. _1) ||  (world ^. height) <= (p ^. _2) = -1
-  | p `elem` (map (^. coords) $ elems $ world ^. ants) =  1
+  | p `elem` (map (^. coords) $ elems $ world ^. ants)      =  1
   | p `elem` (world ^. sugers)                              =  2
   | p `elem` (world ^. anteaters)                           =  3
   | p `elem` (map (^. _1) (world ^. servers))               =  4
