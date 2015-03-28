@@ -99,7 +99,7 @@ choise n ans = map (^. genome) (folddArr selector ((size ans) - 1) ([] :: [Ant])
     selector [] a = [a]
     selector xs a = if (length xs) < n
       then insert a xs
-      else (if (all ((^. hunger) >>> (> a ^. hunger)) xs) then xs else init (insert a xs))
+      else (if (all (> a) xs) then xs else init (insert a xs))
 
 fpow :: (a -> a) -> Int -> (a -> a)
 fpow _ 0 = id
