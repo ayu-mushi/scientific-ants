@@ -1,3 +1,5 @@
+{-# Language TemplateHaskell #-}
+
 module ScientificAnts.Simulation where
 
 import Control.Lens
@@ -18,21 +20,16 @@ type Hunger = Int -- 満腹度
 type Genome = Array Int Int
 type Ear = [Int]
 
-type Ant = ((Int, Int), IP, Register, Stack, Hunger, Genome, Ear) -- 「蟻」
-coordinates :: Lens' Ant (Int, Int)
-coordinates = _1
-ip :: Lens' Ant IP
-ip = _2
-register :: Lens' Ant Register
-register = _3
-genome :: Lens' Ant Genome
-genome = _6
-hunger :: Lens' Ant Hunger
-hunger = _5
-stack :: Lens' Ant Stack
-stack = _4
-ear :: Lens' Ant Ear
-ear = _7
+data Ant = Ant
+  { _coords :: (Int, Int)
+  , _ip :: IP
+  , _register :: Register
+  , _genome :: Genome
+  , _hunger :: Hunger
+  , _stack :: Stack
+  , _ear :: Ear
+  }
+makeLenses ''Ant
 
 type Suger = (Int, Int) -- 「砂糖」
 type Anteater = (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
@@ -87,7 +84,13 @@ mutate sizeOfInsts (gm, r0) =
     (g, r2) = randomR (0, (sizeOfInsts - 1)) r1
 
 mkAnt :: (Int, Int) -> Genome -> Ant
-mkAnt coordinates g = (coordinates, 0, (0, 0, 0, 0), [], 0, g, [])
+mkAnt cs g = Ant {_coords = cs, _ip = 0, _register = (0, 0, 0, 0), _genome = g, _hunger = 0, _stack = [], _ear = []}
+
+instance Eq Ant where
+  a == b = (a ^. hunger) == (b ^. hunger)
+
+instance Ord Ant where
+  a `compare` b = (a ^. hunger) `compare` (b ^. hunger)
 
 -- 選択、満腹度最高よりn匹のゲノム
 choise :: Int -> Array Int Ant -> [Genome]
@@ -200,7 +203,7 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
 ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
 ptToObj world p
   | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. grppWidth) <= (p ^. _1) ||  (world ^. grppHeight) <= (p ^. _2) = -1
-  | p `elem` (map (^. coordinates) $ elems $ world ^. ants) =  1
+  | p `elem` (map (^. coords) $ elems $ world ^. ants) =  1
   | p `elem` (world ^. sugers)                              =  2
   | p `elem` (world ^. anteaters)                           =  3
   | p `elem` (map (^. _1) (world ^. servers))               =  4

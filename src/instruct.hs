@@ -243,18 +243,18 @@ move f i world = movingToThe $ ptToObj world p
   where
     theAnt = (world ^. ants) ! i -- 蟻が次の瞬間行く予定の場所の座標
     p :: (Int, Int)
-    p = f (theAnt ^. coordinates) -- 蟻が次の瞬間行く予定の場所に元々なんかいたらそいつのobject番号
+    p = f (theAnt ^. coords) -- 蟻が次の瞬間行く予定の場所に元々なんかいたらそいつのobject番号
     
     movingToThe :: ObjectNumber -> GraphPaper
     movingToThe (-1) = err i world
-    movingToThe 0 = world & (ants <<< (ix i) <<< coordinates) .~ p -- if 元々居た何か is ｢無｣
+    movingToThe 0 = world & (ants <<< (ix i) <<< coords) .~ p -- if 元々居た何か is ｢無｣
     movingToThe 1 = err i world -- if 元々居た何か is 「蟻」
     movingToThe 2 = (movingToThe 0) & (getSuger0 i) -- if 元々居た何か is 「砂糖」
     movingToThe 3 = (movingToThe 0) & (getAnteater0 i) -- if 元々居た何か is 「砂糖」
     movingToThe 4 = err i world -- if 元々居た何か is 「サーバー」
 
 check :: ((Int, Int) -> (Int, Int)) -> Instruction
-check f i world = pushToTheStack (ptToObj world (f (theAnt ^. _1))) i world
+check f i world = pushToTheStack (ptToObj world (f (theAnt ^. coords))) i world
   where
     theAnt = (world ^. ants) ! i
 
@@ -273,27 +273,27 @@ movdi i world = if ax < 0 || ax > (size $ theAnt ^. genome) then err i world els
 
 -- 接触している蟻同士のP2P通信
 attack :: ((Int, Int) -> (Int, Int)) -> Instruction
-attack f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) -~ 5
+attack f i world = if 1 /= (ptToObj world $ f $ theAnt ^. coords) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) -~ 5
   where 
     theAnt = (world ^. ants) ! i
     ixOfAntAttackedByTheAnt :: Maybe Int
-    ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
+    ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. coords) $ map (^. coords) $ elems $ world ^. ants
 
 reward :: ((Int, Int) -> (Int, Int)) -> Instruction
-reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. _1) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) +~ 5
+reward f i world = if 1 /= (ptToObj world $ f $ theAnt ^. coords) then err i world else world & (ants <<< (ix (fromJust ixOfAntAttackedByTheAnt)) <<< hunger) +~ 5
   where 
     theAnt = (world ^. ants) ! i
     ixOfAntAttackedByTheAnt :: Maybe Int
-    ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
+    ixOfAntAttackedByTheAnt = elemIndex (f $ theAnt ^. coords) $ map (^. coords) $ elems $ world ^. ants
 
 mention :: ((Int, Int) -> (Int, Int)) -> Instruction
 mention f i world =
-  if 1 /= (ptToObj world $ f $ theAnt ^. _1) || 0 == (length $ theAnt ^. stack)
+  if 1 /= (ptToObj world $ f $ theAnt ^. coords) || 0 == (length $ theAnt ^. stack)
     then err i world
     else world & (ants <<< (ix (fromJust ixOfAntMentionedByTheAnt) <<< ear)) %~ ((:) $ head $ theAnt ^. stack) & discard i
   where
     theAnt = (world ^. ants) ! i
-    ixOfAntMentionedByTheAnt = elemIndex (f $ theAnt ^. _1) $ map (^. _1) $ elems $ world ^. ants
+    ixOfAntMentionedByTheAnt = elemIndex (f $ theAnt ^. coords) $ map (^. coords) $ elems $ world ^. ants
 
 listen :: Instruction
 listen i world = if 10 <= (length (theAnt ^. stack)) || null (theAnt ^. ear) then err i world else pushToTheStack (head $ theAnt ^. ear) i world
