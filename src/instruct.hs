@@ -136,8 +136,6 @@ popD i world =
   where
     x = head (((world ^. ants) ! i) ^. stack)
 
-data SearchDirection = Forward | Backward | Outward
-
 readPattern :: Genome -> Int -> [Int]
 readPattern gs i =
   if ((size gs) <= i || i < 0)
@@ -171,6 +169,8 @@ findBackward gs i pattern =
   else if (take (length pattern) $ readPattern gs (i + 1)) == pattern
     then Just $ i + (length pattern) + 1
     else findBackward gs (i - 1) pattern
+
+data SearchDirection = Forward | Backward | Outward
 
 findMatchTemplate :: Genome -> Int -> SearchDirection -> Maybe Int
 findMatchTemplate gs i Forward = if ((size gs) >= i) then Nothing else findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
