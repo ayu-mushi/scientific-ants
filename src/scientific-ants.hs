@@ -174,7 +174,7 @@ nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
     numOfAnts = length spacings
 
 mkServer :: (Int, Int) -> Server
-mkServer coordinates = Server coordinates $ listArray (0, 10) (replicate 11 0)
+mkServer p = Server p $ listArray (0, 10) (replicate 11 0)
 
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
