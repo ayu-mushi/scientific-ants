@@ -1,4 +1,5 @@
 -- 参考: http://coderepos.org/share/browser/lang/csharp/Tierra/trunk 
+{-# LANGUAGE Rank2Types #-}
 module ScientificAnts.InstructionSet where
 
 import Control.Lens
@@ -236,6 +237,9 @@ cdnL = (flip (-) 1) *** id
 cdnR :: (Int, Int) -> (Int, Int)
 cdnR = (+1) *** id
 
+del :: (Object a) => (Lens' GraphPaper [a]) -> (Int, Int) -> GraphPaper -> GraphPaper
+del obj p = obj %~ (filter ((== p) <<< (^. coords)))
+
 -- f is a moving function
 -- TODO: 食われた砂糖は消えるように
 move :: ((Int, Int) -> (Int, Int)) -> Instruction
@@ -249,8 +253,8 @@ move f world = movingToThe $ ptToObj world p
     movingToThe (-1) = err world
     movingToThe 0 = world & (ants <<< focus <<< coords) .~ p -- if 元々居た何か is ｢無｣
     movingToThe 1 = err world -- if 元々居た何か is 「蟻」
-    movingToThe 2 = (movingToThe 0) & getSuger0 -- if 元々居た何か is 「砂糖」
-    movingToThe 3 = (movingToThe 0) & getAnteater0 -- if 元々居た何か is 「砂糖」
+    movingToThe 2 = ((movingToThe 0) & getSuger0) & (del sugers p)-- if 元々居た何か is 「砂糖」
+    movingToThe 3 = ((movingToThe 0) & getAnteater0) & (del anteaters p)-- if 元々居た何か is 「砂糖」
     movingToThe 4 = err world -- if 元々居た何か is 「サーバー」
 
 check :: ((Int, Int) -> (Int, Int)) -> Instruction
@@ -271,7 +275,7 @@ movdi world = if ax < 0 || ax > (size $ theAnt ^. genome) then err world else wo
     ax = theAnt ^. (register<<<_1)
     bx = theAnt ^. (register<<<_2)
 
---antLensByPt :: (Int, Int) -> (Lens' (Zipper Ant) Ant)
+antLensByPt :: (Int, Int) -> (Lens' (Zipper Ant) Ant)
 antLensByPt p = lens get set
   where
     get :: (Zipper Ant) -> Ant
