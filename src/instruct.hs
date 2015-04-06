@@ -16,7 +16,7 @@ import Data.Maybe
 import ScientificAnts.Simulation
 
 getTheAnt :: (Ant -> Instruction) -> Instruction
-getTheAnt f world = f ((world ^. ants) ^. focus) world
+getTheAnt f world = f (world ^. (ants <<< focus)) world
 
 modifyTheAnt's x f = (ants <<< focus <<< x) %~ f
 
@@ -30,20 +30,20 @@ zero = setTheAnt's (register <<< _3) 0
 
 ifz :: Instruction
 ifz world = if cx == 0 then world else incIP world
-  where cx = ((world ^. ants) ^. focus) ^. (register <<< _3)
+  where cx = (world ^. (ants <<< focus)) ^. (register <<< _3)
 
 subCAB :: Instruction
 subCAB world = world & ((ants <<< focus <<< register <<< _3) .~ (ax - bx))
   where
-    ax = (reg ^. _1)
-    bx = (reg ^. _2)
-    reg = (world ^. ants) ^. focus ^. register
+    ax = reg ^. _1
+    bx = reg ^. _2
+    reg = world ^. (ants <<< focus <<< register)
 
 subAAC :: Instruction
 subAAC world = world & (ants <<< focus <<< register <<< _1) -~ cx
   where
-    cx = (reg ^. _1)
-    reg = ((world ^. ants) ^. focus) ^. register
+    cx = reg ^. _1
+    reg = world ^. (ants <<< focus <<< register)
 
 incA :: Instruction
 incA = modifyTheAnt's (register <<< _1) (+ 1)
@@ -67,7 +67,7 @@ pushToTheStack x world =
     then err world
     else world & ((ants <<< focus <<< stack) %~ ((:) x))
   where
-    xs = ((world ^. ants) ^. focus) ^. stack
+    xs = world ^. (ants <<< focus <<< stack)
 
 pushA :: Instruction
 pushA world =
@@ -75,8 +75,8 @@ pushA world =
     then err world
     else world & ((ants <<< focus <<< stack) %~ ((:) ax))
   where
-    ax = ((world ^. ants) ^. focus) ^. (register <<< _1)
-    xs = ((world ^. ants) ^. focus) ^. stack
+    ax = world ^. (ants <<< focus <<< register <<< _1)
+    xs = world ^. (ants <<< focus <<< stack)
 
 pushB :: Instruction
 pushB world =
@@ -84,8 +84,8 @@ pushB world =
     then err world
     else world & ((ants <<< focus <<< stack) %~ ((:) bx))
   where
-    bx = ((world ^. ants) ^. focus) ^. (register <<< _2)
-    xs = ((world ^. ants) ^. focus) ^. stack
+    bx = world ^. (ants <<< focus <<< register <<< _2)
+    xs = world ^. (ants <<< focus <<< stack)
 
 pushC :: Instruction
 pushC world =
@@ -93,8 +93,8 @@ pushC world =
     then err world
     else world & ((ants <<< focus <<< stack) %~ ((:) cx))
   where
-    cx = ((world ^. ants) ^. focus) ^. (register <<< _3)
-    xs = ((world ^. ants) ^. focus) ^. stack
+    cx = world ^. (ants <<< focus <<< register <<< _3)
+    xs = world ^. (ants <<< focus <<< stack)
 
 pushD :: Instruction
 pushD world =
@@ -102,8 +102,8 @@ pushD world =
     then err world
     else world & ((ants <<< focus <<< stack) %~ ((:) cx))
   where
-    cx = ((world ^. ants) ^. focus) ^. (register <<< _4)
-    xs = ((world ^. ants) ^. focus) ^. stack
+    cx = world ^. (ants <<< focus <<< register <<< _4)
+    xs = world ^. (ants <<< focus <<< stack)
 
 -- スタックの一番上の値を破棄する
 discard :: Instruction
@@ -114,28 +114,28 @@ popA world =
   if null $ ((world ^. ants) ^. focus) ^. stack then err world
     else (discard world) & (ants <<< focus <<< register <<< _1) .~ x
   where
-    x = head (((world ^. ants) ^. focus) ^. stack)
+    x = head $ world ^. (ants <<< focus <<< stack)
 
 popB :: Instruction
 popB world =
   if null $ ((world ^. ants) ^. focus) ^. stack then err world
     else (discard world) & (ants <<< focus <<< register <<< _2) .~ x
   where
-    x = head (((world ^. ants) ^. focus) ^. stack)
+    x = head $ world ^. (ants <<< focus <<< stack)
 
 popC :: Instruction
 popC world = 
   if null $ ((world ^. ants) ^. focus) ^. stack then err world
     else (discard world) & (ants <<< focus <<< register <<< _3) .~ x
   where
-    x = head (((world ^. ants) ^. focus) ^. stack)
+    x = head $ world ^. (ants <<< focus <<< stack)
 
 popD :: Instruction
 popD world =
   if null $ ((world ^. ants) ^. focus) ^. stack then err world
     else (discard world) & (ants <<< focus <<< register <<< _4) .~ x
   where
-    x = head (((world ^. ants) ^. focus) ^. stack)
+    x = head $ world ^. (ants <<< focus <<< stack)
 
 readPattern :: Genome -> Int -> [Int]
 readPattern gs i =
@@ -192,7 +192,7 @@ jmpo world = modifing foundAdr
     foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Outward
     modifing Nothing = err world
     modifing (Just x) = world & ((ants <<< focus <<< ip) .~ (x `mod` (size $ theAnt ^. genome)))
-    theAnt = (world ^. ants) ^. focus
+    theAnt = world ^. (ants <<< focus)
 
 jmpb :: Instruction
 jmpb world = modifing foundAdr
@@ -200,7 +200,7 @@ jmpb world = modifing foundAdr
     foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Backward
     modifing Nothing = err world
     modifing (Just x) = world & ((ants <<< focus <<< ip) .~ (x `mod` (size $ theAnt ^. genome)))
-    theAnt = (world ^. ants) ^. focus
+    theAnt = world ^. (ants <<< focus)
 
 call :: Instruction
 call world =
@@ -211,9 +211,9 @@ call world =
       then err jmped
       else jmped & (ants <<< focus <<< stack) %~ ((:) ip0)
   where
-    ip0 = ((world ^. ants) ^. focus) ^. ip
+    ip0 = world ^. (ants <<< focus <<< ip)
     jmped = jmpo world
-    jmpedIP = ((jmped ^. ants) ^. focus) ^. ip
+    jmpedIP = jmped ^. (ants <<< focus <<< ip)
 
 getSuger :: Int -> Instruction
 getSuger deliciousness world = world & (ants <<< focus <<< hunger) +~ deliciousness
@@ -266,7 +266,7 @@ rand :: Instruction
 rand world = (world & (ants <<< focus <<< register <<< _1) .~ x) & gen .~ r0
   where
     (x, r0) = randomR (0, abs ax) $ world ^. gen
-    ax = ((world ^. ants) ^. focus) ^. (register <<< _1)
+    ax = world ^. (ants <<< focus <<< register <<< _1)
 
 movdi :: Instruction
 movdi world = if ax < 0 || ax > (size $ theAnt ^. genome) then err world else world & (ants <<< focus <<< genome <<< (ix ax)) .~ bx
