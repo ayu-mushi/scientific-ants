@@ -1,6 +1,4 @@
 -- 参考: http://coderepos.org/share/browser/lang/csharp/Tierra/trunk 
-{-# LANGUAGE RankNTypes #-}
-
 module ScientificAnts.InstructionSet where
 
 import Control.Lens
