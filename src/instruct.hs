@@ -371,7 +371,7 @@ asm :: [(Int, String, Instruction)] -> [String] -> [Int]
 asm = map <<< numberOfInst
 
 nameOfInst :: [String] -> Int -> String
-nameOfInst nameSet = fromJust <<< ((^?) nameSet) <<< ix
+nameOfInst = flip $ (fromJust <<<) <<< (flip (^?)) <<< ix
 
 -- 逆アセンブル
 unasm :: [String] -> [Int] -> [String]
