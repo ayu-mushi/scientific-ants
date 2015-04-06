@@ -18,7 +18,7 @@ cabal-version:       >=1.8
 executable scientific-ants
   main-is:             main.hs
   -- other-modules:       
-  build-depends:       base ==4.6.*, lens >=4
+  build-depends:       base ==4.6.*, lens >=4, ListZipper ==1.*, optparse-applicative ==0.*
   hs-source-dirs:      src
 
 source-repository head

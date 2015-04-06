@@ -1,6 +1,7 @@
 import ScientificAnts.Simulation
 import ScientificAnts.InstructionSet
 
+import System.Environment
 import System.Random
 import Control.Lens
 import Control.Arrow
@@ -8,6 +9,7 @@ import Control.Applicative
 import Data.Array
 import Data.List
 import Data.List.Zipper
+import Options.Applicative
 
 ancestor1 :: Genome
 ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
