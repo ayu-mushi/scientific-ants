@@ -6,6 +6,7 @@ import System.Random
 import Control.Lens
 import Control.Arrow
 import Control.Applicative
+import Control.Monad
 import Data.Array
 import Data.List
 import Data.List.Zipper
@@ -56,5 +57,20 @@ experiment1 = putStrLn $
       50 10 10 (mapGenomesToWorld1 (mkStdGen r0)) (replicate 10 ancestor1))
       $ numberOfInst namedInsts1 "mentionU") [45823..45833])
 
+data Options = Options
+  { interactive :: Bool
+  , inputFile :: String
+  } deriving Show
+
+interactiveMode :: IO ()
+interactiveMode = do
+  putStr "SciAnts> "
+  l <- getLine
+  if l == "exit"
+    then return ()
+    else do
+      putStrLn $ "command not found: " ++ l
+      interactiveMode
+
 main :: IO ()
-main = justGenomesExample0
+main = interactiveMode
