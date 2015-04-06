@@ -17,7 +17,6 @@ import Data.List.Zipper
 class Object a where -- 空間上の或る一点を占める事ができる存在
   coords :: Lens' a (Int, Int)
 
-type IP = Int
 type Register = (Int, Int, Int, Int)
 type Stack = [Int]
 type Hunger = Int -- 満腹度
@@ -26,10 +25,10 @@ type Ear = [Int]
 
 data Ant = Ant -- 「蟻」
   { _coordinates :: (Int, Int)
-  , _ip :: IP
+  , _ip :: Int
   , _register :: Register
   , _genome :: Genome
-  , _hunger :: Hunger
+  , _hunger :: Int
   , _stack :: Stack
   , _ear :: Ear
   }
