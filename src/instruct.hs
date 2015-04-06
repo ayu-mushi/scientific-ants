@@ -238,7 +238,7 @@ cdnR :: (Int, Int) -> (Int, Int)
 cdnR = (+1) *** id
 
 delByCoords :: (Object a) => (Lens' GraphPaper [a]) -> (Int, Int) -> Instruction
-delByCoords obj p = obj %~ (filter ((== p) <<< (^. coords)))
+delByCoords obj p = obj %~ (filter ((!= p) <<< (^. coords)))
 
 -- f is a moving function
 -- TODO: 食われた砂糖は消えるように
@@ -356,9 +356,7 @@ namedInsts1 =
 
 instSet :: [(Int, String, Instruction)] -> InstructionSet
 instSet =
-  (array <<< ((,) 0) <<< (flip (-) 1) <<< length) <*> (map removeName)
-  where
-    removeName (n, name, inst) = (n, inst)
+  (array <<< ((,) 0) <<< (flip (-) 1) <<< length) <*> (map ((^. _1) &&& (^. _3)))
 
 nameSet :: [(Int, String, Instruction)] -> [String]
 nameSet = map (^. _2)
