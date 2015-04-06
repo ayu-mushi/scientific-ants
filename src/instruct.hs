@@ -354,29 +354,29 @@ namedInsts1 =
     (36,"mentionR", mention cdnR),
     (37,  "listen", listen)]
 
-insts :: [(Int, String, Instruction)] -> InstructionSet
-insts =
+instSet :: [(Int, String, Instruction)] -> InstructionSet
+instSet =
   (array <<< ((,) 0) <<< (flip (-) 1) <<< length) <*> (map removeName)
   where
     removeName (n, name, inst) = (n, inst)
 
-namesOfInsts :: [(Int, String, Instruction)] -> [String]
-namesOfInsts = map (^. _2)
+nameSet :: [(Int, String, Instruction)] -> [String]
+nameSet = map (^. _2)
 
 numberOfInst :: [(Int, String, Instruction)] -> String -> Int
-numberOfInst = (fromJust <<<) <<< (flip elemIndex) <<< namesOfInsts
+numberOfInst = (fromJust <<<) <<< (flip elemIndex) <<< nameSet
 
 -- アセンブル
 asm :: [(Int, String, Instruction)] -> [String] -> [Int]
 asm = map <<< numberOfInst
 
 nameOfInst :: [String] -> Int -> String
-nameOfInst names = fromJust <<< ((^?) names) <<< ix
+nameOfInst nameSet = fromJust <<< ((^?) nameSet) <<< ix
 
 -- 逆アセンブル
 unasm :: [String] -> [Int] -> [String]
 unasm = map <<< nameOfInst
 
 -- 添字付きで逆アセンブル
-indexedUnasmOfInsts :: [String] -> [Int] -> [(Int, String)]
-indexedUnasmOfInsts = (zip [0..] <<<) <<< unasm
+indexedUnasm :: [String] -> [Int] -> [(Int, String)]
+indexedUnasm = (zip [0..] <<<) <<< unasm
