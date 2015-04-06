@@ -12,6 +12,7 @@ import Control.Applicative
 import Data.Maybe
 import Data.Array.ST
 import Data.Ratio
+import Data.List.Zipper
 
 type IP = Int
 type Register = (Int, Int, Int, Int)
@@ -37,7 +38,7 @@ type Server = ((Int, Int), Array Int Int) -- 「サーバー」
 
 -- 方眼紙、格子状の平面、セル・オートマトンのやつ
 data GraphPaper = GraphPaper
-  { _ants :: Array Int Ant
+  { _ants :: Zipper Ant
   , _sugers :: [Suger]
   , _anteaters :: [Anteater]
   , _servers :: [Server]
@@ -47,25 +48,33 @@ data GraphPaper = GraphPaper
   }
 makeLenses ''GraphPaper
 
-type Instruction = Int -> GraphPaper -> GraphPaper
+type Instruction = GraphPaper -> GraphPaper
 type InstructionSet = Array Int Instruction
 
 size :: Array Int a -> Int
 size = bounds >>> (^. _2) >>> (+ 1)
 
+focus :: Lens' (Zipper a) a
+focus = lens cursor $ flip replace
+
 incIP :: Instruction
-incIP i world =
-    world & ((ants <<< (ix i) <<< ip)
-      %~ ((+1) >>> (flip mod $ size $ ((world ^. ants) ! i) ^. genome)))
+incIP world =
+    world & ((ants <<< focus <<< ip)
+      %~ ((+1) >>> (flip mod $ size $ ((world ^. ants) ^. focus) ^. genome)))
+
+begin :: Zipper a -> Zipper a
+begin (Zip ls rs) = Zip (ls ++ rs) []
 
 -- 時間の齣(コマ)を1つ進める
-refreshGraphPaper:: InstructionSet -> (Int, GraphPaper) -> (Int, GraphPaper)
-refreshGraphPaper insts (i, world) =
-  ((i + 1) `mod` (size (world ^. ants)),
-    (incIP i $ (insts ! ((theAnt ^. genome) ! (theAnt ^. ip))) i world))
+refreshGraphPaper:: InstructionSet -> GraphPaper -> GraphPaper
+refreshGraphPaper insts world =
+  if endp (world ^. ants)
+    then world & execute & ants %~ begin
+    else world & execute & ants %~ Data.List.Zipper.left
 
     where
-      theAnt = (world ^. ants) ! i
+      execute world = incIP $ (insts ! ((theAnt ^. genome) ! (theAnt ^. ip))) world
+      theAnt = (world ^. ants) ^. focus 
 
 mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
 mutate sizeOfInsts (gm, r0) =
@@ -88,18 +97,14 @@ instance Ord Ant where
   a `compare` b = (a ^. hunger) `compare` (b ^. hunger)
 
 -- 選択、満腹度最高よりn匹のゲノム
-choise :: Int -> Array Int Ant -> [Genome]
-choise n ans = map (^. genome) (folddArr selector ((size ans) - 1) ([] :: [Ant]) ans)
+choise :: Int -> [Ant] -> [Genome]
+choise n as = map (^. genome) $ foldl' selector [] as
   where
-    folddArr :: (a -> b -> a) -> Int -> a -> Array Int b -> a
-    folddArr _ 0 a _ = a -- """fold down""" for Array
-    folddArr f i a arr = folddArr f (i-1) (f a (arr ! i)) arr
-    
     selector :: [Ant] -> Ant -> [Ant]
     selector [] a = [a]
     selector xs a = if (length xs) < n
-      then insert a xs
-      else (if (all (> a) xs) then xs else init (insert a xs))
+      then Data.List.insert a xs
+      else (if (all (> a) xs) then xs else init (Data.List.insert a xs))
 
 fpow :: (a -> a) -> Int -> (a -> a)
 fpow _ 0 = id
@@ -134,21 +139,20 @@ replicateWithRemainder (n, 0) xs = replicate n xs
 replicateWithRemainder (n, remainder) xs = concat [(replicate n xs),[(take remainder xs)]]
 
 -- 選ばれた強い蟻から、numOfAnts匹の蟻を作る
-nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> [Genome] -> Array Int Ant
+nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> [Genome] -> [Ant]
 nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
   if numOfAnts == 0
-    then listArray (0, 0) []
+    then []
   else if (length genomes) >= numOfAnts
-    then listArray (0, numOfAnts-1) $
+    then 
       take numOfAnts $
         (mapWithIx (mkAnts spacings)) $ (^. _1) $
           (randmap 
             (fpow (mutate sizeOfInsts) $ round $ ((randomR (0.0, fromIntegral $ length genomes) r0) ^. _1) / mutationalRate)
             (genomes, r0))
-    else 
-      flatArray $
-        zipWith (nextGeneration `flip` sizeOfInsts `flip` mutationalRate `flip` r0)
-          (slice (length genomes) spacings)
+    else
+      concat $ zipWith (nextGeneration `flip` sizeOfInsts `flip` mutationalRate `flip` r0)
+        (slice (length genomes) spacings)
           $ replicateWithRemainder (numOfAnts `divMod` (length genomes)) genomes 
 
   where
@@ -198,7 +202,7 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
 ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
 ptToObj world p
   | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. width) <= (p ^. _1) ||  (world ^. height) <= (p ^. _2) = -1
-  | p `elem` (map (^. coords) $ elems $ world ^. ants)      =  1
+  | p `elem` (map (^. coords) $ toList $ world ^. ants)     =  1
   | p `elem` (world ^. sugers)                              =  2
   | p `elem` (world ^. anteaters)                           =  3
   | p `elem` (map (^. _1) (world ^. servers))               =  4
@@ -236,8 +240,8 @@ popularityOfTheGene :: [Genome] -> Int -> Int
 popularityOfTheGene gss g = length $ concat [[x | x <- (elems gs), x == g] | gs <- gss] 
 
 aCycleOfRefreshing :: InstructionSet -> GraphPaper -> GraphPaper
-aCycleOfRefreshing insts world = view _2 $ fpow (refreshGraphPaper insts) (size $ world ^. ants) (0, world)
+aCycleOfRefreshing insts world = fpow (refreshGraphPaper insts) (length $ toList $ world ^. ants) world
 
 genericAlgorithm :: InstructionSet -> Int -> Int -> Int -> ([Genome] -> GraphPaper) -> [Genome] -> [Genome]
 genericAlgorithm insts nRefresh nGenerate nChoise nextGeneration0 =
-  fpow (choise nChoise <<< (^. ants) <<< (fpow (aCycleOfRefreshing insts) nRefresh) <<< nextGeneration0) nGenerate
+  fpow (choise nChoise <<< toList <<< (^. ants) <<< (fpow (aCycleOfRefreshing insts) nRefresh) <<< nextGeneration0) nGenerate

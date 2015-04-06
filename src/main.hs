@@ -7,6 +7,7 @@ import Control.Arrow
 import Control.Applicative
 import Data.Array
 import Data.List
+import Data.List.Zipper
 
 ancestor1 :: Genome
 ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
@@ -25,7 +26,7 @@ mapGenomesToWorld1 r0 gss = toGrPp $
   where
     toGrPp :: [[(Int, Int)]] -> GraphPaper
     toGrPp (_:(sAnt:(sSuger:(sAnteater:(sServer:_))))) = -- sは`spacing of'の略
-      GraphPaper { _ants = nextGeneration sAnt (size insts1) 0.001 r0 gss, _sugers = sSuger, _anteaters = sAnteater, _servers = map mkServer sServer, _width = 30, _height = 30, _gen = r0 }
+      GraphPaper { _ants = fromList $ nextGeneration sAnt (size insts1) 0.001 r0 gss, _sugers = sSuger, _anteaters = sAnteater, _servers = map mkServer sServer, _width = 30, _height = 30, _gen = r0 }
 
 world1 :: StdGen -> GraphPaper
 world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1
@@ -40,10 +41,10 @@ experiment1 = putStrLn $
   (show $ map (\r0 -> (popularityOfTheGene
     (genericAlgorithm
       (insts1
-        // [(numberOfInst1 "rewardU", nop),
-          (numberOfInst1 "rewardD", nop),
-          (numberOfInst1 "rewardL", nop),
-          (numberOfInst1 "rewardR", nop)])
+        // [(numberOfInst1 "rewardU", id),
+          (numberOfInst1 "rewardD", id),
+          (numberOfInst1 "rewardL", id),
+          (numberOfInst1 "rewardR", id)])
       50 10 10 (mapGenomesToWorld1 (mkStdGen r0)) (replicate 10 ancestor1)))
       $ numberOfInst1 "mentionU") [143243..143253])
   ++ "\n" ++
