@@ -237,8 +237,8 @@ cdnL = (flip (-) 1) *** id
 cdnR :: (Int, Int) -> (Int, Int)
 cdnR = (+1) *** id
 
-del :: (Object a) => (Lens' GraphPaper [a]) -> (Int, Int) -> GraphPaper -> GraphPaper
-del obj p = obj %~ (filter ((== p) <<< (^. coords)))
+delByCoords :: (Object a) => (Lens' GraphPaper [a]) -> (Int, Int) -> Instruction
+delByCoords obj p = obj %~ (filter ((== p) <<< (^. coords)))
 
 -- f is a moving function
 -- TODO: 食われた砂糖は消えるように
@@ -253,8 +253,8 @@ move f world = movingToThe $ ptToObj world p
     movingToThe (-1) = err world
     movingToThe 0 = world & (ants <<< focus <<< coords) .~ p -- if 元々居た何か is ｢無｣
     movingToThe 1 = err world -- if 元々居た何か is 「蟻」
-    movingToThe 2 = ((movingToThe 0) & getSuger0) & (del sugers p)-- if 元々居た何か is 「砂糖」
-    movingToThe 3 = ((movingToThe 0) & getAnteater0) & (del anteaters p)-- if 元々居た何か is 「砂糖」
+    movingToThe 2 = ((movingToThe 0) & getSuger0) & (delByCoords sugers p)-- if 元々居た何か is 「砂糖」
+    movingToThe 3 = ((movingToThe 0) & getAnteater0) & (delByCoords anteaters p)-- if 元々居た何か is 「砂糖」
     movingToThe 4 = err world -- if 元々居た何か is 「サーバー」
 
 check :: ((Int, Int) -> (Int, Int)) -> Instruction
@@ -354,29 +354,29 @@ namedInsts1 =
     (36,"mentionR", mention cdnR),
     (37,  "listen", listen)]
 
-insts1 :: InstructionSet
-insts1 =
-  (array <<< ((,) 0) <<< (flip (-) 1) <<< length) <*> (map removeName) $ namedInsts1
+insts :: [(Int, String, Instruction)] -> InstructionSet
+insts =
+  (array <<< ((,) 0) <<< (flip (-) 1) <<< length) <*> (map removeName)
   where
     removeName (n, name, inst) = (n, inst)
 
-namesOfInsts1 :: [String]
-namesOfInsts1 = map (^. _2) namedInsts1
+namesOfInsts :: [(Int, String, Instruction)] -> [String]
+namesOfInsts = map (^. _2)
 
-numberOfInst1 :: String -> Int
-numberOfInst1 = fromJust <<< elemIndex `flip` namesOfInsts1
+numberOfInst :: [(Int, String, Instruction)] -> String -> Int
+numberOfInst = (fromJust <<<) <<< (flip elemIndex) <<< namesOfInsts
 
 -- アセンブル
-asmOfInsts1 :: [String] -> [Int]
-asmOfInsts1 = map numberOfInst1
+asm :: [(Int, String, Instruction)] -> [String] -> [Int]
+asm = map <<< numberOfInst
 
-nameOfInst1 :: Int -> String
-nameOfInst1 = fromJust <<< ((^?) namesOfInsts1) <<< ix
+nameOfInst :: [String] -> Int -> String
+nameOfInst names = fromJust <<< ((^?) names) <<< ix
 
 -- 逆アセンブル
-unasmOfInsts1 :: [Int] -> [String]
-unasmOfInsts1 = map nameOfInst1
+unasm :: [String] -> [Int] -> [String]
+unasm = map <<< nameOfInst
 
 -- 添字付きで逆アセンブル
-indexedUnasmOfInsts1 :: [Int] -> [(Int, String)]
-indexedUnasmOfInsts1 = (zip [0..]) <<< unasmOfInsts1
+indexedUnasmOfInsts :: [String] -> [Int] -> [(Int, String)]
+indexedUnasmOfInsts = (zip [0..] <<<) <<< unasm
