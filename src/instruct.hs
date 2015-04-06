@@ -238,7 +238,7 @@ cdnR :: (Int, Int) -> (Int, Int)
 cdnR = (+1) *** id
 
 delByCoords :: (Object a) => (Lens' GraphPaper [a]) -> (Int, Int) -> Instruction
-delByCoords obj p = obj %~ (filter ((!= p) <<< (^. coords)))
+delByCoords obj p = obj %~ (filter ((/= p) <<< (^. coords)))
 
 -- f is a moving function
 -- TODO: 食われた砂糖は消えるように
