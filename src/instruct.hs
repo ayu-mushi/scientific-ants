@@ -271,7 +271,7 @@ movdi world = if ax < 0 || ax > (size $ theAnt ^. genome) then err world else wo
     ax = theAnt ^. (register<<<_1)
     bx = theAnt ^. (register<<<_2)
 
-antLensByPt :: (Int, Int) -> (Lens' (Zipper Ant) Ant)
+--antLensByPt :: (Int, Int) -> (Lens' (Zipper Ant) Ant)
 antLensByPt p = lens get set
   where
     get :: (Zipper Ant) -> Ant

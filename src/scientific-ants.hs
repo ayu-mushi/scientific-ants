@@ -14,6 +14,9 @@ import Data.Array.ST
 import Data.Ratio
 import Data.List.Zipper
 
+class Object a where -- 空間上の或る一点を占める事ができる存在
+  coords :: Lens' a (Int, Int)
+
 type IP = Int
 type Register = (Int, Int, Int, Int)
 type Stack = [Int]
@@ -22,7 +25,7 @@ type Genome = Array Int Int
 type Ear = [Int]
 
 data Ant = Ant -- 「蟻」
-  { _coords :: (Int, Int)
+  { _coordinates :: (Int, Int)
   , _ip :: IP
   , _register :: Register
   , _genome :: Genome
@@ -31,10 +34,20 @@ data Ant = Ant -- 「蟻」
   , _ear :: Ear
   }
 makeLenses ''Ant
+instance Object Ant where
+  coords = coordinates
 
-type Suger = (Int, Int) -- 「砂糖」
-type Anteater = (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
-type Server = ((Int, Int), Array Int Int) -- 「サーバー」
+data Suger = Suger (Int, Int) -- 「砂糖」
+instance Object Suger where
+  coords = lens (\(Suger p) -> p) (\(Suger p) q -> (Suger q))
+
+data Anteater = Anteater (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
+instance Object Anteater where
+  coords = lens (\(Anteater p) -> p) (\(Anteater p) q -> (Anteater q))
+
+data Server = Server (Int, Int) (Array Int Int) -- 「サーバー」
+instance Object Server where
+  coords = lens (\(Server p _) -> p) (\(Server p a) q -> (Server q a))
 
 -- 方眼紙、格子状の平面、セル・オートマトンのやつ
 data GraphPaper = GraphPaper
@@ -88,7 +101,7 @@ mutate sizeOfInsts (gm, r0) =
     (g, r2) = randomR (0, (sizeOfInsts - 1)) r1
 
 mkAnt :: (Int, Int) -> Genome -> Ant
-mkAnt cs g = Ant {_coords = cs, _ip = 0, _register = (0, 0, 0, 0), _genome = g, _hunger = 0, _stack = [], _ear = []}
+mkAnt cs g = Ant {_coordinates = cs, _ip = 0, _register = (0, 0, 0, 0), _genome = g, _hunger = 0, _stack = [], _ear = []}
 
 instance Eq Ant where
   a == b = (a ^. hunger) == (b ^. hunger)
@@ -161,7 +174,7 @@ nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
     numOfAnts = length spacings
 
 mkServer :: (Int, Int) -> Server
-mkServer coordinates = (coordinates, listArray (0, 10) (replicate 11 0))
+mkServer coordinates = Server coordinates $ listArray (0, 10) (replicate 11 0)
 
 type ObjectNumber = Int
 -- 0 - 「無」、1 - 「蟻」、2 - 「砂糖」、3 - 「アリジゴク」、4 - 「サーバー」
@@ -202,11 +215,11 @@ spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingOb
 ptToObj :: GraphPaper -> (Int, Int) -> ObjectNumber
 ptToObj world p
   | (p ^. _1) < 0 || (p ^. _2) < 0 || (world ^. width) <= (p ^. _1) ||  (world ^. height) <= (p ^. _2) = -1
-  | p `elem` (map (^. coords) $ toList $ world ^. ants)     =  1
-  | p `elem` (world ^. sugers)                              =  2
-  | p `elem` (world ^. anteaters)                           =  3
-  | p `elem` (map (^. _1) (world ^. servers))               =  4
-  | otherwise                                               =  0
+  | p `elem` (map (^. coords) $ toList $ world ^. ants)       =  1
+  | p `elem` (map (^. coords) (world ^. sugers))              =  2
+  | p `elem` (map (^. coords) (world ^. anteaters))           =  3
+  | p `elem` (map (^. coords) (world ^. servers))             =  4
+  | otherwise                                                 =  0
 
 print2dArray :: (Show a) => Array (Int, Int) a -> String
 print2dArray ary2d = print2dArray' ary2d 0 0
