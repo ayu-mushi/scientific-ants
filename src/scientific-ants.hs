@@ -34,11 +34,11 @@ makeLenses ''Ant
 instance Object Ant where
   coords = coordinates
 
-data Suger = Suger (Int, Int) -- 「砂糖」
+newtype Suger = Suger (Int, Int) -- 「砂糖」
 instance Object Suger where
   coords = lens (\(Suger p) -> p) (\(Suger p) q -> (Suger q))
 
-data Anteater = Anteater (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
+newtype Anteater = Anteater (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
 instance Object Anteater where
   coords = lens (\(Anteater p) -> p) (\(Anteater p) q -> (Anteater q))
 
