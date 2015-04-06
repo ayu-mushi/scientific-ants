@@ -171,12 +171,14 @@ findBackward gs i pattern =
     then Just $ i + (length pattern) + 1
     else findBackward gs (i - 1) pattern
 
-data SearchDirection = Forward | Backward | Outward
+findMatchForward :: Genome -> Int -> Maybe Int
+findMatchForward gs i = findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
 
-findMatchTemplate :: Genome -> Int -> SearchDirection -> Maybe Int
-findMatchTemplate gs i Forward = if ((size gs) <= i) then Nothing else findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
-findMatchTemplate gs i Backward = if (0 > i) then Nothing else findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
-findMatchTemplate gs i Outward =
+findMatchBackward :: Genome -> Int -> Maybe Int
+findMatchBackward gs i = findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
+
+findMatchOutward :: Genome -> Int -> Maybe Int
+findMatchOutward gs i =
   if isNothing b && isNothing f then Nothing
   else if isNothing b then f
   else if isNothing f then b
@@ -189,7 +191,7 @@ findMatchTemplate gs i Outward =
 jmpo :: Instruction
 jmpo world = modifing foundAdr
   where
-    foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Outward
+    foundAdr = findMatchOutward (theAnt ^. genome) (theAnt ^. ip)
     modifing Nothing = err world
     modifing (Just x) = world & ((ants <<< focus <<< ip) .~ (x `mod` (size $ theAnt ^. genome)))
     theAnt = world ^. (ants <<< focus)
@@ -197,7 +199,7 @@ jmpo world = modifing foundAdr
 jmpb :: Instruction
 jmpb world = modifing foundAdr
   where
-    foundAdr = findMatchTemplate (theAnt ^. genome) (theAnt ^. ip) Backward
+    foundAdr = findMatchBackward (theAnt ^. genome) (theAnt ^. ip)
     modifing Nothing = err world
     modifing (Just x) = world & ((ants <<< focus <<< ip) .~ (x `mod` (size $ theAnt ^. genome)))
     theAnt = world ^. (ants <<< focus)
