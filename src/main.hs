@@ -57,4 +57,4 @@ experiment1 = putStrLn $
       $ numberOfInst namedInsts1 "mentionU") [45823..45833])
 
 main :: IO ()
-main = experiment1
+main = justGenomesExample0
