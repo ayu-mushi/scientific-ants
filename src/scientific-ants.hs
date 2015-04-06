@@ -130,11 +130,6 @@ randmap f ((x:xs), r0) = ((y:ys), r2)
     (ys, r2) = randmap f (xs, r1)
     (y, r1) = f (x, r0)
 
-flatArray :: [Array Int a] -> Array Int a
-flatArray arys = listArray (0, length xss-1) $ xss
-  where
-    xss = concat $ map elems arys
-
 mapWithIx :: (a -> Int -> b) -> [a] -> [b]
 mapWithIx = mapWithIx' 0
   where
