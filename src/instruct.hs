@@ -174,7 +174,7 @@ findBackward gs i pattern =
 data SearchDirection = Forward | Backward | Outward
 
 findMatchTemplate :: Genome -> Int -> SearchDirection -> Maybe Int
-findMatchTemplate gs i Forward = if ((size gs) >= i) then Nothing else findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
+findMatchTemplate gs i Forward = if ((size gs) <= i) then Nothing else findForward gs i $ reverseTranscriptase $ readPattern gs (i+1)
 findMatchTemplate gs i Backward = if (0 > i) then Nothing else findBackward gs i $ reverseTranscriptase $ readPattern gs (i+1)
 findMatchTemplate gs i Outward =
   if isNothing b && isNothing f then Nothing
