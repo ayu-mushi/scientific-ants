@@ -24,12 +24,14 @@ mapGenomesToWorld1 r0 gss = create $
       [(x, 5) | x <- [0..10]],
       [(x+1, 4*x) | x <- [0..10]],
       [(x, 5*x) | x <- [0..10]]]
-      [0,50,30,20,0]
-      10
+      ns
+      w
   where
     create :: [[(Int, Int)]] -> GraphPaper
     create (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- dは`disposing of'の略
-      GraphPaper { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger dSuger, _anteaters = map Anteater dAnteater, _servers = map mkServer dServer, _width = 30, _height = 30, _gen = r0 }
+      GraphPaper { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger dSuger, _anteaters = map Anteater dAnteater, _servers = map mkServer dServer, _width = w, _height = (sum ns) `div` w, _gen = r0 }
+    w = 10
+    ns = [0,50,30,20,0]
 
 world1 :: StdGen -> GraphPaper
 world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1
