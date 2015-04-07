@@ -83,7 +83,7 @@ refreshGraphPaper insts world =
     else world & execute & ants %~ Data.List.Zipper.left
 
     where
-      execute world = incIP $ (insts ! ((theAnt ^. genome) ! (theAnt ^. ip))) world
+      execute = incIP . (insts ! ((theAnt ^. genome) ! (theAnt ^. ip)))
       theAnt = (world ^. ants) ^. focus 
 
 mutate :: Int -> (Genome, StdGen) -> (Genome, StdGen)
