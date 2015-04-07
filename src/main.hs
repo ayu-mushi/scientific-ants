@@ -45,9 +45,9 @@ interactiveMode :: IO ()
 interactiveMode = do
   putStr "SciAnts> "
   l <- getLine
-  if l == "exit"
-    then return ()
-    else do
+  case l of 
+    "exit" -> return ()
+    _ -> do
       putStrLn $ "command not found: " ++ l
       interactiveMode
 
