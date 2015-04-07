@@ -28,7 +28,7 @@ mapGenomesToWorld1 r0 gss = toGrPp $
       10
   where
     toGrPp :: [[(Int, Int)]] -> GraphPaper
-    toGrPp (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- sは`disposing of'の略
+    toGrPp (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- dは`disposing of'の略
       GraphPaper { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger dSuger, _anteaters = map Anteater dAnteater, _servers = map mkServer dServer, _width = 30, _height = 30, _gen = r0 }
 
 world1 :: StdGen -> GraphPaper
