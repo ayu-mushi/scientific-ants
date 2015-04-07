@@ -17,7 +17,7 @@ ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
   $ asm namedInsts1 ["checkU", "checkD", "checkL", "checkR"]
 
 mapGenomesToWorld1 :: StdGen -> [Genome] -> GraphPaper
-mapGenomesToWorld1 r0 gss = toGrPp $
+mapGenomesToWorld1 r0 gss = create $
   disposingOfEachObjs r0
     [[(2*x, x) | x <- [0..10]],
       [(x, x) | x <- [0..10]],
@@ -27,8 +27,8 @@ mapGenomesToWorld1 r0 gss = toGrPp $
       [0,50,30,20,0]
       10
   where
-    toGrPp :: [[(Int, Int)]] -> GraphPaper
-    toGrPp (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- dは`disposing of'の略
+    create :: [[(Int, Int)]] -> GraphPaper
+    create (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- dは`disposing of'の略
       GraphPaper { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger dSuger, _anteaters = map Anteater dAnteater, _servers = map mkServer dServer, _width = 30, _height = 30, _gen = r0 }
 
 world1 :: StdGen -> GraphPaper
