@@ -18,7 +18,7 @@ ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
 
 mapGenomesToWorld1 :: StdGen -> [Genome] -> GraphPaper
 mapGenomesToWorld1 r0 gss = toGrPp $
-  spacingOfEachObjects r0
+  disposingOfEachObjs r0
     [[(2*x, x) | x <- [0..10]],
       [(x, x) | x <- [0..10]],
       [(x, 5) | x <- [0..10]],
@@ -28,8 +28,8 @@ mapGenomesToWorld1 r0 gss = toGrPp $
       10
   where
     toGrPp :: [[(Int, Int)]] -> GraphPaper
-    toGrPp (_:(sAnt:(sSuger:(sAnteater:(sServer:_))))) = -- sは`spacing of'の略
-      GraphPaper { _ants = fromList $ nextGeneration sAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger sSuger, _anteaters = map Anteater sAnteater, _servers = map mkServer sServer, _width = 30, _height = 30, _gen = r0 }
+    toGrPp (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- sは`disposing of'の略
+      GraphPaper { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger dSuger, _anteaters = map Anteater dAnteater, _servers = map mkServer dServer, _width = 30, _height = 30, _gen = r0 }
 
 world1 :: StdGen -> GraphPaper
 world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1

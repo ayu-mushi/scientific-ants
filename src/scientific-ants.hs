@@ -145,25 +145,25 @@ replicateWithRemainder (n, remainder) xs = concat [(replicate n xs),[(take remai
 
 -- 選ばれた強い蟻から、numOfAnts匹の蟻を作る
 nextGeneration :: [(Int, Int)] -> Int -> Float -> StdGen -> [Genome] -> [Ant]
-nextGeneration spacings sizeOfInsts mutationalRate r0 genomes =
+nextGeneration disposings sizeOfInsts mutationalRate r0 genomes =
   if numOfAnts == 0
     then []
   else if (length genomes) >= numOfAnts
     then 
       take numOfAnts $
-        (mapWithIx (mkAnts spacings)) $ (^. _1) $
+        (mapWithIx (mkAnts disposings)) $ (^. _1) $
           (randmap 
             (fpow (mutate sizeOfInsts) $ round $ ((randomR (0.0, fromIntegral $ length genomes) r0) ^. _1) / mutationalRate)
             (genomes, r0))
     else
       concat $ zipWith (nextGeneration `flip` sizeOfInsts `flip` mutationalRate `flip` r0)
-        (slice (length genomes) spacings)
+        (slice (length genomes) disposings)
           $ replicateWithRemainder (numOfAnts `divMod` (length genomes)) genomes 
 
   where
     mkAnts :: [(Int, Int)] -> Genome -> Int -> Ant
     mkAnts xys g i = mkAnt (fromJust (xys ^? ix i)) g
-    numOfAnts = length spacings
+    numOfAnts = length disposings
 
 mkServer :: (Int, Int) -> Server
 mkServer p = Server p $ listArray (0, 10) (replicate 11 0)
@@ -179,25 +179,25 @@ wall = wall' 0
     wall' i (x:(y:xs)) p = if p < x then i else wall' (i + 1) ((x + y) : xs) p
 
 -- アイテム/エージェントの配置を決める
-spacingObjects ::
+disposeObjs ::
   StdGen ->
   [[(Int,Int)]] -- 各々の"傾向"を表す二次元ベクトルの列の列
     -> [Int] -- 各アイテム/エージェントの個数を表す列
     -> Int -- GraphPaperの幅
     -> Array (Int,Int) ObjectNumber -- アイテム/エージェントの配置
-spacingObjects r0 vss ns width = array ((0, 0), (width-1, height-1)) $ spacingObjects' r0 ns 0 0 []
+disposeObjs r0 vss ns width = array ((0, 0), (width-1, height-1)) $ disposeObjs' r0 ns 0 0 []
   where
     height = (sum ns) `div` width
-    spacingObjects' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
-    spacingObjects' r0 ns i j xs =
+    disposeObjs' :: StdGen -> [Int] -> Int -> Int -> [((Int, Int), ObjectNumber)] -> [((Int, Int), ObjectNumber)]
+    disposeObjs' r0 ns i j xs =
       if j == height
         then
           []
         else
           ((i, j), obj)
           : (if width /= (i + 1)
-            then spacingObjects' r1 (ns & (ix obj) -~ 1) (i+1) j xs
-            else spacingObjects' r1 (ns & (ix obj) -~ 1) 0 (j+1) xs)
+            then disposeObjs' r1 (ns & (ix obj) -~ 1) (i+1) j xs
+            else disposeObjs' r1 (ns & (ix obj) -~ 1) 0 (j+1) xs)
       where
         weight = map (\x -> if (i,j) `elem` x then 2 else 1) vss
         weightedNs = zipWith (*) ns weight
@@ -226,13 +226,13 @@ print2dArray ary2d = print2dArray' ary2d 0 0
             else ".")
     (_, (width, height)) = bounds ary2d 
 
-spacingOfEachObjects :: StdGen -> [[(Int,Int)]] -> [Int] -> Int -> [[(Int, Int)]]
-spacingOfEachObjects r0 vss ns width =
+disposingOfEachObjs :: StdGen -> [[(Int,Int)]] -> [Int] -> Int -> [[(Int, Int)]]
+disposingOfEachObjs r0 vss ns width =
   [[(x, y)
     | x <- [0..width-1], y <- [0..height-1], (aryDim2 ! (x, y)) == i]
       | i <- [0..(length ns)-1]]
   where
-    aryDim2 = spacingObjects r0 vss ns width 
+    aryDim2 = disposeObjs r0 vss ns width 
     height = (sum ns) `div` width
 
 -- 各々遺伝子とその遺伝子の使われる率
