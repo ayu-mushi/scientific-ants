@@ -137,25 +137,17 @@ popD world =
   where
     x = head $ world ^. (ants <<< focus <<< stack)
 
-readPattern :: Genome -> Int -> [Int]
-readPattern gs i =
-  if ((size gs) <= i || i < 0)
-    then []
-  else if (gs ! i) == 0
-    then 0 : readPattern gs (i + 1)
-  else if (gs ! i) == 1
-    then 1 : readPattern gs (i + 1)
-  else
-    []
+readPattern :: Genome -> Int -> [Bool]
+readPattern gs i
+  | (size gs) <= i || i < 0 = []
+  | (gs ! i) == 0           = False : readPattern gs (i + 1) 
+  | (gs ! i) == 1           = True : readPattern gs (i + 1)
+  | otherwise               = []
 
-reverseTranscriptase :: [Int] -> [Int]
-reverseTranscriptase = map rt
-  where
-    rt 0 = 1
-    rt 1 = 0
-    rt _ = error "reverseTranscriptasing list must consist of only 0 or 1."
+reverseTranscriptase :: [Bool] -> [Bool]
+reverseTranscriptase = map not
 
-findForward :: Genome -> Int -> [Int] -> Maybe Int
+findForward :: Genome -> Int -> [Bool] -> Maybe Int
 findForward gs i pattern =
   if (size gs) <= i || i < 0 || null pattern
     then Nothing
@@ -163,7 +155,7 @@ findForward gs i pattern =
     then Just $ i + (length pattern) + 1
     else findForward gs (i + 1) pattern
 
-findBackward :: Genome -> Int -> [Int] -> Maybe Int
+findBackward :: Genome -> Int -> [Bool] -> Maybe Int
 findBackward gs i pattern = 
   if i < 0 || (size gs) <= i || null pattern
     then Nothing
