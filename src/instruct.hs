@@ -235,7 +235,6 @@ delByCoords :: (Object a) => (Lens' GraphPaper [a]) -> (Int, Int) -> Instruction
 delByCoords obj p = obj %~ (filter ((/= p) <<< (^. coords)))
 
 -- f is a moving function
--- TODO: 食われた砂糖は消えるように
 move :: ((Int, Int) -> (Int, Int)) -> Instruction
 move f world = movingToThe $ ptToObj world p
   where
