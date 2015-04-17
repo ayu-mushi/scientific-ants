@@ -2,6 +2,10 @@
 
 module ScientificAnts.Simulation where
 
+import GHC.Read
+import qualified Text.Read.Lex as L
+import Text.ParserCombinators.ReadPrec
+
 import Control.Lens
 import Data.Array
 import Control.Arrow
@@ -29,22 +33,33 @@ data Ant = Ant -- 「蟻」
   , _hunger :: Int -- 満腹度
   , _stack :: Stack
   , _ear :: Stack
-  }
+  } deriving (Show, Read)
 makeLenses ''Ant
 instance Object Ant where
   coords = coordinates
 
-newtype Suger = Suger (Int, Int) -- 「砂糖」
+newtype Suger = Suger (Int, Int) deriving (Show, Read) -- 「砂糖」
 instance Object Suger where
   coords = lens (\(Suger p) -> p) (\(Suger p) q -> (Suger q))
 
-newtype Anteater = Anteater (Int, Int) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
+newtype Anteater = Anteater (Int, Int) deriving (Show, Read) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
 instance Object Anteater where
   coords = lens (\(Anteater p) -> p) (\(Anteater p) q -> (Anteater q))
 
-data Server = Server (Int, Int) (Array Int Int) -- 「サーバー」
+data Server = Server (Int, Int) (Array Int Int) deriving (Show, Read) -- 「サーバー」
 instance Object Server where
   coords = lens (\(Server p _) -> p) (\(Server p a) q -> (Server q a))
+
+instance (Read a) => Read (Zipper a) where
+  readPrec =
+    parens $ prec appPrec $
+      do
+        L.Ident "Zip" <- lexP
+        ls <- step readPrec
+        rs <- step readPrec
+        return (Zip ls rs)
+      where
+        appPrec = 3
 
 -- 方眼紙、格子状の平面、セル・オートマトンのやつ
 data GraphPaper = GraphPaper
@@ -55,7 +70,7 @@ data GraphPaper = GraphPaper
   , _width :: Int
   , _height :: Int
   , _gen :: StdGen
-  }
+  } deriving (Show, Read)
 makeLenses ''GraphPaper
 
 type Instruction = GraphPaper -> GraphPaper
@@ -76,8 +91,8 @@ begin :: Zipper a -> Zipper a
 begin (Zip ls rs) = Zip (ls ++ rs) []
 
 -- 時間の齣(コマ)を1つ進める
-refreshGraphPaper:: InstructionSet -> GraphPaper -> GraphPaper
-refreshGraphPaper insts world =
+refresh:: InstructionSet -> GraphPaper -> GraphPaper
+refresh insts world =
   if endp (world ^. ants)
     then world & execute & ants %~ begin
     else world & execute & ants %~ Data.List.Zipper.left
@@ -245,7 +260,7 @@ popularityOfTheGene :: [Genome] -> Int -> Int
 popularityOfTheGene gss g = length $ concat [[x | x <- (elems gs), x == g] | gs <- gss] 
 
 aCycleOfRefreshing :: InstructionSet -> GraphPaper -> GraphPaper
-aCycleOfRefreshing insts world = fpow (refreshGraphPaper insts) (length $ toList $ world ^. ants) world
+aCycleOfRefreshing insts world = fpow (refresh insts) (length $ toList $ world ^. ants) world
 
 genericAlgorithm :: InstructionSet -> Int -> Int -> Int -> ([Genome] -> GraphPaper) -> [Genome] -> [Genome]
 genericAlgorithm insts nRefresh nGenerate nChoise nextGeneration0 =
