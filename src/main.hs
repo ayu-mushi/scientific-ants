@@ -1,16 +1,18 @@
+{-# LANGUAGE TemplateHaskell #-}
 import ScientificAnts.Simulation
 import ScientificAnts.InstructionSet
 
-import System.Environment
 import System.Random
 import Control.Lens
 import Control.Arrow
 import Control.Applicative
 import Control.Monad
+import Control.Monad.State
 import Data.Array
 import Data.List
 import Data.List.Zipper
 import Options.Applicative
+import Data.Monoid
 
 ancestor1 :: Genome
 ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
@@ -36,20 +38,32 @@ mapGenomesToWorld1 r0 gss = create $
 world1 :: StdGen -> GraphPaper
 world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1
 
-data Options = Options
-  { interactive :: Bool
-  , inputFile :: String
-  } deriving Show
+refreshCmd :: String -> State (Zipper GraphPaper) (IO ())
+refreshCmd = state <<< (((,) $ return ()) <<<) <<< (((%~) focus) <<< (fpow $ refresh $ instSet namedInsts1)) <<< (read :: String -> Int)
 
-interactiveMode :: IO ()
-interactiveMode = do
+createCmd :: String -> State (Zipper GraphPaper) (IO ())
+createCmd = state <<< (((,) $ return ()) <<<) <<< Data.List.Zipper.insert <<< world1 <<< read
+
+opts :: Parser (State (Zipper GraphPaper) (IO ()))
+opts =
+  subparser $ mconcat
+    [ command "refresh" $
+        info (refreshCmd <$> Options.Applicative.argument str idm) idm
+    , command "create" $
+        info (createCmd <$> Options.Applicative.argument str idm) idm
+    ]
+
+interactiveMode :: (Zipper GraphPaper) -> IO ()
+interactiveMode worlds = do
   putStr "SciAnts> "
   l <- getLine
-  case l of 
-    "exit" -> return ()
-    _ -> do
-      putStrLn $ "command not found: " ++ l
-      interactiveMode
+  when (l /= "exit") $ do
+    (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` worlds) >>> return)
+    exe
+    interactiveMode worlds'
 
 main :: IO ()
-main = interactiveMode
+main = do
+  (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` (fromList [world1 $ mkStdGen 114514])) >>> return)
+  print $ popularityOfGenes (nameOfInst $ nameSet namedInsts1) (size $ instSet namedInsts1) $ map (^. genome) $ toList $ worlds' ^. focus ^. ants
+  exe
