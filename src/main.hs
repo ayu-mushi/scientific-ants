@@ -3,6 +3,7 @@ import ScientificAnts.Simulation
 import ScientificAnts.InstructionSet
 
 import System.Random
+import System.IO
 import Control.Lens
 import Control.Arrow
 import Control.Applicative
@@ -61,6 +62,19 @@ interactiveMode worlds = do
     (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` worlds) >>> return)
     exe
     interactiveMode worlds'
+
+readWorlds :: FilePath -> IO (Zipper GraphPaper)
+readWorlds filename = do
+  handle <- openFile filename ReadMode
+  contents <- hGetContents handle
+  hClose handle
+  return (read contents :: Zipper GraphPaper)
+
+writeWorlds :: (Zipper GraphPaper) -> FilePath -> IO ()
+writeWorlds worlds filename = do
+  handle <- openFile filename WriteMode
+  hPutStr handle $ show worlds
+  hClose handle
 
 main :: IO ()
 main = do
