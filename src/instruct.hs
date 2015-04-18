@@ -46,16 +46,16 @@ subAAC world = world & (ants <<< focus <<< register <<< _1) -~ cx
     reg = world ^. (ants <<< focus <<< register)
 
 incA :: Instruction
-incA = modifyTheAnt's (register <<< _1) (+ 1)
+incA = modifyTheAnt's (register <<< _1) succ
 
 incB :: Instruction
-incB = modifyTheAnt's (register <<< _2) (+ 1)
+incB = modifyTheAnt's (register <<< _2) succ
 
 decC :: Instruction
-decC = modifyTheAnt's (register <<< _3) $ flip (-) 1
+decC = modifyTheAnt's (register <<< _3) pred
 
 incC :: Instruction
-incC = modifyTheAnt's (register <<< _3) (+ 1)
+incC = modifyTheAnt's (register <<< _3) succ
 
 -- 手続きの実行が失敗した時などに減点する
 err:: Instruction
