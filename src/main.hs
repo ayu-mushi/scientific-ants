@@ -77,7 +77,7 @@ writeWorlds worlds filename = do
   hClose handle
 
 main :: IO ()
-main = do
+main = writeWorlds (fromList [world1 $ mkStdGen 123131234]) "world1.scian"{-do
   (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` (fromList [world1 $ mkStdGen 114514])) >>> return)
   print $ popularityOfGenes (nameOfInst $ nameSet namedInsts1) (size $ instSet namedInsts1) $ map (^. genome) $ toList $ worlds' ^. focus ^. ants
-  exe
+  exe-}
