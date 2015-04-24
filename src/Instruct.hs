@@ -1,6 +1,6 @@
 -- 参考: http://coderepos.org/share/browser/lang/csharp/Tierra/trunk 
 {-# LANGUAGE Rank2Types #-}
-module ScientificAnts.InstructionSet where
+module Instruct where
 
 import Control.Lens
 import Control.Arrow
@@ -13,7 +13,7 @@ import Data.List.Zipper
 import System.Random
 import Data.Maybe
 
-import ScientificAnts.Simulation
+import Engine
 
 getTheAnt :: (Ant -> Instruction) -> Instruction
 getTheAnt f world = f (world ^. (ants <<< focus)) world
@@ -59,7 +59,7 @@ incC = modifyTheAnt's (register <<< _3) succ
 
 -- 手続きの実行が失敗した時などに減点する
 err:: Instruction
-err = modifyTheAnt's hunger $ flip (-) 1
+err = modifyTheAnt's hunger $ pred
 
 pushToTheStack :: Int -> Instruction
 pushToTheStack x world =

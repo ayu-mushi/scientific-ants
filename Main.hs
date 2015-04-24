@@ -1,7 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
-import ScientificAnts.Simulation
-import ScientificAnts.InstructionSet
 
+module Main where
+
+import Engine
+import Instruct
+
+import Control.DeepSeq (rnf)
 import System.Random
 import System.IO
 import Control.Lens
@@ -12,8 +16,8 @@ import Control.Monad.State
 import Data.Array
 import Data.List
 import Data.List.Zipper
+import Data.Monoid (mconcat)
 import Options.Applicative
-import Data.Monoid
 
 ancestor1 :: Genome
 ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
@@ -63,21 +67,20 @@ interactiveMode worlds = do
     exe
     interactiveMode worlds'
 
-readWorlds :: FilePath -> IO (Zipper GraphPaper)
-readWorlds filename = do
-  handle <- openFile filename ReadMode
-  contents <- hGetContents handle
-  hClose handle
-  return (read contents :: Zipper GraphPaper)
-
-writeWorlds :: (Zipper GraphPaper) -> FilePath -> IO ()
-writeWorlds worlds filename = do
-  handle <- openFile filename WriteMode
-  hPutStr handle $ show worlds
-  hClose handle
+modifyFile :: FilePath -> (String -> String) -> IO ()
+modifyFile filename f = do
+  h <- openFile filename ReadMode
+  contents <- hGetContents h
+  return $! rnf contents
+  hClose h
+  writeFile filename $ f contents
 
 main :: IO ()
-main = writeWorlds (fromList [world1 $ mkStdGen 123131234]) "world1.scian"{-do
-  (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` (fromList [world1 $ mkStdGen 114514])) >>> return)
-  print $ popularityOfGenes (nameOfInst $ nameSet namedInsts1) (size $ instSet namedInsts1) $ map (^. genome) $ toList $ worlds' ^. focus ^. ants
-  exe-}
+main = do 
+  h <- openFile "world1.scian" ReadMode
+  worlds <- hGetContents h
+  return $! rnf worlds
+  hClose h
+  (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` ((read :: String -> Zipper GraphPaper) $ worlds)) >>> return)
+  writeFile "world1.scian" $ show worlds'
+  exe

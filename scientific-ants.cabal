@@ -15,11 +15,15 @@ category:            Game
 build-type:          Simple
 cabal-version:       >=1.8
 
-executable scientific-ants
-  main-is:             main.hs
-  -- other-modules:       
-  build-depends:       base ==4.6.*, lens >=4, ListZipper ==1.*, optparse-applicative ==0.*
+library
   hs-source-dirs:      src
+  exposed-modules:     Engine, Instruct
+  build-depends:       base, random, mtl, array, lens >=4, ListZipper ==1.*
+
+executable scientific-ants
+  main-is:             Main.hs
+  build-depends:       scientific-ants, base, lens, ListZipper, optparse-applicative, deepseq, random, mtl, array
+  -- other-modules:       
 
 source-repository head
   type:      git
