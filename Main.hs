@@ -1,12 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Main where
-
 import ScientificAnts.Engine
 import ScientificAnts.Instruct
 
 import Control.DeepSeq (rnf)
-import System.Random
+import System.Random (StdGen, mkStdGen)
 import System.IO
 import Control.Lens
 import Control.Arrow

@@ -19,4 +19,6 @@ Tutorial
 
 License
 ---------
-This simulator is provided under MIT.
+This simulator is licensed under the MIT License.
+
+See LICENSE file.
