@@ -2,8 +2,8 @@
 
 module Main where
 
-import Engine
-import Instruct
+import ScientificAnts.Engine
+import ScientificAnts.Instruct
 
 import Control.DeepSeq (rnf)
 import System.Random

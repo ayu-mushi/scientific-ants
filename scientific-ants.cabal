@@ -16,8 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  hs-source-dirs:      src
-  exposed-modules:     Engine, Instruct
+  exposed-modules:     ScientificAnts.Engine, ScientificAnts.Instruct
   build-depends:       base, random, mtl, array, lens >=4, ListZipper ==1.*
 
 executable scientific-ants
