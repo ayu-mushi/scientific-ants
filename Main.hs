@@ -6,7 +6,7 @@ import ScientificAnts.Instruct
 import Control.DeepSeq (rnf)
 import System.Random (StdGen, mkStdGen)
 import qualified System.IO as IO
-import Control.Lens
+import Control.Lens hiding (argument)
 import Control.Arrow
 import Control.Applicative
 import Control.Monad
@@ -51,9 +51,9 @@ opts :: Parser (State (Zipper GraphPaper) (IO ()))
 opts =
   subparser $ mconcat
     [ command "refresh" $
-        info (refreshCmd <$> Options.Applicative.argument str idm) idm
+        info (refreshCmd <$> argument str idm) idm
     , command "create" $
-        info (createCmd <$> Options.Applicative.argument str idm) idm
+        info (createCmd <$> argument str idm) idm
     ]
 
 interactiveMode :: (Zipper GraphPaper) -> IO ()
