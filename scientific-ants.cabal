@@ -17,11 +17,11 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:     ScientificAnts.Engine, ScientificAnts.Instruct
-  build-depends:       base, random, mtl, array, lens >=4, ListZipper ==1.*
+  build-depends:       base >=4.6.0.1 && <= 4.8.0.0, random, mtl, array, lens >=4, ListZipper ==1.*
 
 executable scientific-ants
   main-is:             Main.hs
-  build-depends:       scientific-ants, base, lens, ListZipper, optparse-applicative, deepseq, random, mtl, array
+  build-depends:       scientific-ants, base >=4.6.0.1 && <= 4.8.0.0, lens, ListZipper, optparse-applicative, deepseq, random, mtl, array
   -- other-modules:       
 
 source-repository head
