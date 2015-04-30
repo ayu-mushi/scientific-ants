@@ -5,15 +5,15 @@ import ScientificAnts.Instruct
 
 import Control.DeepSeq (rnf)
 import System.Random (StdGen, mkStdGen)
-import System.IO
+import qualified System.IO as IO
 import Control.Lens
 import Control.Arrow
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Data.Array
+import Data.Array (listArray)
 import Data.List
-import Data.List.Zipper
+import Data.List.Zipper (Zipper, insert, fromList)
 import Data.Monoid (mconcat)
 import Options.Applicative
 
@@ -65,20 +65,20 @@ interactiveMode worlds = do
     exe
     interactiveMode worlds'
 
-modifyFile :: FilePath -> (String -> String) -> IO ()
+modifyFile :: IO.FilePath -> (String -> String) -> IO ()
 modifyFile filename f = do
-  h <- openFile filename ReadMode
-  contents <- hGetContents h
+  h <- IO.openFile filename IO.ReadMode
+  contents <- IO.hGetContents h
   return $! rnf contents
-  hClose h
-  writeFile filename $ f contents
+  IO.hClose h
+  IO.writeFile filename $ f contents
 
 main :: IO ()
 main = do 
-  h <- openFile "world1.scian" ReadMode
-  worlds <- hGetContents h
+  h <- IO.openFile "world1.scian" IO.ReadMode
+  worlds <- IO.hGetContents h
   return $! rnf worlds
-  hClose h
+  IO.hClose h
   (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` ((read :: String -> Zipper GraphPaper) $ worlds)) >>> return)
-  writeFile "world1.scian" $ show worlds'
+  IO.writeFile "world1.scian" $ show worlds'
   exe
