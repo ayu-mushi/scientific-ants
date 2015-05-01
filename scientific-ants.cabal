@@ -21,7 +21,7 @@ library
 
 executable scientific-ants
   main-is:             Main.hs
-  build-depends:       scientific-ants, base >=4.6.0.1 && <= 4.8.0.0, lens, ListZipper, optparse-applicative, deepseq, random, mtl, array
+  build-depends:       scientific-ants, base >=4.6.0.1 && <= 4.8.0.0, lens, ListZipper, optparse-applicative, deepseq, random, mtl, array, directory, filepath, profunctors
   -- other-modules:       
 
 source-repository head
