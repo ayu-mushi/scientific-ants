@@ -6,13 +6,14 @@ import ScientificAnts.Instruct
 import Control.DeepSeq (rnf)
 import System.Random (StdGen, mkStdGen)
 import qualified System.IO as IO
+import System.Directory (getCurrentDirectory)
+import System.FilePath (takeFileName)
 import Control.Lens hiding (argument)
-import Control.Arrow
+import Control.Arrow ((<<<), (>>>), (&&&))
 import Control.Applicative
 import Control.Monad
-import Control.Monad.State
 import Data.Array (listArray)
-import Data.List
+import Data.List hiding (insert)
 import Data.List.Zipper (Zipper, insert, fromList)
 import Data.Monoid (mconcat)
 import Options.Applicative
@@ -41,30 +42,6 @@ mapGenomesToWorld1 r0 gss = create $
 world1 :: StdGen -> GraphPaper
 world1 = mapGenomesToWorld1 `flip` replicate 10 ancestor1
 
-refreshCmd :: String -> State (Zipper GraphPaper) (IO ())
-refreshCmd = state <<< (((,) $ return ()) <<<) <<< (((%~) focus) <<< (fpow $ refresh $ instSet namedInsts1)) <<< (read :: String -> Int)
-
-createCmd :: String -> State (Zipper GraphPaper) (IO ())
-createCmd = state <<< (((,) $ return ()) <<<) <<< Data.List.Zipper.insert <<< world1 <<< read
-
-opts :: Parser (State (Zipper GraphPaper) (IO ()))
-opts =
-  subparser $ mconcat
-    [ command "refresh" $
-        info (refreshCmd <$> argument str idm) idm
-    , command "create" $
-        info (createCmd <$> argument str idm) idm
-    ]
-
-interactiveMode :: (Zipper GraphPaper) -> IO ()
-interactiveMode worlds = do
-  putStr "SciAnts> "
-  l <- getLine
-  when (l /= "exit") $ do
-    (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` worlds) >>> return)
-    exe
-    interactiveMode worlds'
-
 modifyFile :: IO.FilePath -> (String -> String) -> IO ()
 modifyFile filename f = do
   h <- IO.openFile filename IO.ReadMode
@@ -73,12 +50,25 @@ modifyFile filename f = do
   IO.hClose h
   IO.writeFile filename $ f contents
 
+refreshCmd :: String -> FilePath -> IO ()
+refreshCmd =
+  (read :: String -> Int)
+    >>> (fpow $ refresh $ instSet namedInsts1)
+    >>> (<<<(read :: String -> GraphPaper))
+    >>> (>>>show)
+    >>> (flip modifyFile)
+
+createCmd :: String -> FilePath -> IO ()
+createCmd = (flip writeFile) <<< show <<< world1 <<< mkStdGen <<< (read :: String -> Int)
+
+opts :: Parser (IO ())
+opts =
+  subparser $ mconcat
+    [ command "refresh" $
+        info (refreshCmd <$> argument str idm <*> argument str idm) idm
+    , command "create" $
+        info (createCmd <$> argument str idm <*> argument str idm) idm
+    ]
+
 main :: IO ()
-main = do 
-  h <- IO.openFile "world1.scian" IO.ReadMode
-  worlds <- IO.hGetContents h
-  return $! rnf worlds
-  IO.hClose h
-  (exe, worlds') <- (execParser $ info opts idm) >>= ((runState `flip` ((read :: String -> Zipper GraphPaper) $ worlds)) >>> return)
-  IO.writeFile "world1.scian" $ show worlds'
-  exe
+main = join $ execParser $ info opts idm
