@@ -68,12 +68,12 @@ createCmd = read >>> mkStdGen >>> world1 >>> show >>> (flip writeFile)
 
 commonOpts :: Parser (IO ())
 commonOpts =
-  subparser $ mconcat
-    [ command "refresh" $
-        info (refreshCmd <$> argument str idm <*> argument str idm) idm
-    , command "create" $
-        info (createCmd <$> argument str idm <*> argument str idm) idm
-    ]
+ subparser $ mconcat
+  [ command "refresh" $
+      info (refreshCmd <$> argument str idm <*> argument str idm) idm
+  , command "create" $
+      info (createCmd <$> argument str idm <*> argument str idm) idm
+  ]
 
 main :: IO ()
-main = join $ execParser $ info commonOpts idm
+main = join $ execParser $ info (helper <*> commonOpts) idm
