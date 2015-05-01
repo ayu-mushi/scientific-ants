@@ -8,15 +8,15 @@ import System.Random (StdGen, mkStdGen)
 import qualified System.IO as IO
 import System.Directory (getCurrentDirectory)
 import System.FilePath (takeFileName)
-import Control.Lens hiding (argument)
+-- import Control.Lens hiding (argument)
 import Control.Arrow ((<<<), (>>>), (&&&))
 import Control.Applicative ((<$>), (<*>))
-import Control.Monad
+import Control.Monad (join)
 import Data.Array (listArray)
-import Data.List hiding (insert)
 import Data.List.Zipper (Zipper, insert, fromList)
 import Data.Monoid (mconcat)
 import Options.Applicative
+import Data.Profunctor (dimap)
 
 ancestor1 :: Genome
 ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
@@ -62,8 +62,7 @@ refreshCmd :: String -> FilePath -> IO ()
 refreshCmd =
   (read :: String -> Int)
     >>> (fpow $ refresh $ instSet namedInsts1)
-    >>> (<<<(read :: String -> GraphPaper))
-    >>> (>>>show)
+    >>> (dimap (read :: String -> GraphPaper) show)
     >>> (flip modifyFile)
 
 createCmd :: String -> FilePath -> IO ()
