@@ -10,7 +10,7 @@ import System.Directory (getCurrentDirectory)
 import System.FilePath (takeFileName)
 import Control.Lens hiding (argument)
 import Control.Arrow ((<<<), (>>>), (&&&))
-import Control.Applicative
+import Control.Applicative ((<$>), (<*>))
 import Control.Monad
 import Data.Array (listArray)
 import Data.List hiding (insert)
@@ -35,7 +35,15 @@ mapGenomesToWorld1 r0 gss = create $
   where
     create :: [[(Int, Int)]] -> GraphPaper
     create (_:(dAnt:(dSuger:(dAnteater:(dServer:_))))) = -- dは`disposing of'の略
-      GraphPaper { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss, _sugers = map Suger dSuger, _anteaters = map Anteater dAnteater, _servers = map mkServer dServer, _width = w, _height = (sum ns) `div` w, _gen = r0 }
+      GraphPaper
+        { _ants = fromList $ nextGeneration dAnt (size (instSet namedInsts1)) 0.001 r0 gss
+        , _sugers = map Suger dSuger
+        , _anteaters = map Anteater dAnteater
+        , _servers = map mkServer dServer
+        , _width = w
+        , _height = (sum ns) `div` w
+        , _gen = r0 
+        }
     w = 10
     ns = [0,50,30,20,0]
 
@@ -59,7 +67,7 @@ refreshCmd =
     >>> (flip modifyFile)
 
 createCmd :: String -> FilePath -> IO ()
-createCmd = (flip writeFile) <<< show <<< world1 <<< mkStdGen <<< (read :: String -> Int)
+createCmd = (read :: String -> Int) >>> mkStdGen >>> world1 >>> show >>> (flip writeFile)
 
 opts :: Parser (IO ())
 opts =
