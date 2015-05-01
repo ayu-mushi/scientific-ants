@@ -6,8 +6,6 @@ import ScientificAnts.Instruct
 import Control.DeepSeq (rnf)
 import System.Random (StdGen, mkStdGen)
 import qualified System.IO as IO
-import System.Directory (getCurrentDirectory)
-import System.FilePath (takeFileName)
 -- import Control.Lens hiding (argument)
 import Control.Arrow ((<<<), (>>>), (&&&))
 import Control.Applicative ((<$>), (<*>))
