@@ -60,13 +60,13 @@ modifyFile filename f = do
 
 refreshCmd :: String -> FilePath -> IO ()
 refreshCmd =
-  (read :: String -> Int)
+  read
     >>> (fpow $ refresh $ instSet namedInsts1)
-    >>> (dimap (read :: String -> GraphPaper) show)
+    >>> (dimap read show)
     >>> (flip modifyFile)
 
 createCmd :: String -> FilePath -> IO ()
-createCmd = (read :: String -> Int) >>> mkStdGen >>> world1 >>> show >>> (flip writeFile)
+createCmd = read >>> mkStdGen >>> world1 >>> show >>> (flip writeFile)
 
 commonOpts :: Parser (IO ())
 commonOpts =
