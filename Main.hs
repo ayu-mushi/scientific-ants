@@ -68,8 +68,8 @@ refreshCmd =
 createCmd :: String -> FilePath -> IO ()
 createCmd = (read :: String -> Int) >>> mkStdGen >>> world1 >>> show >>> (flip writeFile)
 
-opts :: Parser (IO ())
-opts =
+commonOpts :: Parser (IO ())
+commonOpts =
   subparser $ mconcat
     [ command "refresh" $
         info (refreshCmd <$> argument str idm <*> argument str idm) idm
@@ -78,4 +78,4 @@ opts =
     ]
 
 main :: IO ()
-main = join $ execParser $ info opts idm
+main = join $ execParser $ info commonOpts idm
