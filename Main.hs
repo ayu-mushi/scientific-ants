@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 import ScientificAnts.Engine
 import ScientificAnts.Instruct
 
@@ -68,7 +66,7 @@ createCmd = read >>> mkStdGen >>> world1 >>> show >>> (flip writeFile)
 
 commonOpts :: Parser (IO ())
 commonOpts =
- subparser $ mconcat
+  subparser $ mconcat
   [ command "refresh" $
       info (refreshCmd <$> argument str idm <*> argument str idm) idm
   , command "create" $
