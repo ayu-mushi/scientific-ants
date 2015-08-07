@@ -38,15 +38,15 @@ makeLenses ''Ant
 instance Object Ant where
   coords = coordinates
 
-newtype Suger = Suger (Int, Int) deriving (Show, Read) -- 「砂糖」
+newtype Suger = Suger (Int, Int) deriving (Show, Read)
 instance Object Suger where
   coords = lens (\(Suger p) -> p) (\(Suger p) q -> (Suger q))
 
-newtype Anteater = Anteater (Int, Int) deriving (Show, Read) -- 「アリジゴク」、英訳分からないしAnteater(アリクイ)でいいかって流れ(アリクイだと動きそうだけど実際は動きませんしただのアイテムです)
+newtype Anteater = Anteater (Int, Int) deriving (Show, Read)
 instance Object Anteater where
   coords = lens (\(Anteater p) -> p) (\(Anteater p) q -> (Anteater q))
 
-data Server = Server (Int, Int) (Array Int Int) deriving (Show, Read) -- 「サーバー」
+data Server = Server (Int, Int) (Array Int Int) deriving (Show, Read)
 instance Object Server where
   coords = lens (\(Server p _) -> p) (\(Server p a) q -> (Server q a))
 
