@@ -12,7 +12,6 @@ import Data.Array (listArray)
 import Data.List.Zipper (Zipper, insert, fromList)
 import Data.Monoid (mconcat)
 import Options.Applicative
-import Data.Profunctor (dimap)
 
 ancestor1 :: Genome
 ancestor1 = (flip listArray) <*> (((,) 0) <<< (flip (-) 1) <<< length)
@@ -58,7 +57,8 @@ refreshCmd :: String -> FilePath -> IO ()
 refreshCmd =
   read
     >>> (fpow $ refresh $ instSet namedInsts1)
-    >>> (dimap read show)
+    >>> (.read)
+    >>> (show.)
     >>> (flip modifyFile)
 
 createCmd :: String -> FilePath -> IO ()
