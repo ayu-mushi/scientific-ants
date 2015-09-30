@@ -1,5 +1,5 @@
-import ScientificAnts.Engine
-import ScientificAnts.Instruct
+import ALife.ScientificAnts.Engine
+import ALife.ScientificAnts.Instruct
 
 import Control.DeepSeq (rnf)
 import System.Random (StdGen, mkStdGen)

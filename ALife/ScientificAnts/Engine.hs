@@ -1,6 +1,6 @@
 {-# Language TemplateHaskell #-}
 
-module ScientificAnts.Engine where
+module ALife.ScientificAnts.Engine where
 
 import GHC.Read
 import qualified Text.Read.Lex as L

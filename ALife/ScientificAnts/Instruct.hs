@@ -1,6 +1,6 @@
 -- 参考: http://coderepos.org/share/browser/lang/csharp/Tierra/trunk 
 {-# LANGUAGE Rank2Types #-}
-module ScientificAnts.Instruct where
+module ALife.ScientificAnts.Instruct where
 
 import Control.Lens
 import Control.Arrow
@@ -13,7 +13,7 @@ import Data.List.Zipper
 import System.Random
 import Data.Maybe
 
-import ScientificAnts.Engine
+import ALife.ScientificAnts.Engine
 
 getTheAnt :: (Ant -> Instruction) -> Instruction
 getTheAnt f world = f (world ^. (ants <<< focus)) world
