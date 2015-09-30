@@ -1,0 +1,6 @@
+extra-deps:
+- ListZipper-1.2.0.2
+resolver: lts-2.22
+flags: {}
+packages:
+- '.'
