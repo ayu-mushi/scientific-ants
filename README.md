@@ -1,4 +1,4 @@
-scientific-ants.hs
+scientific-ants
 =================
 
 Abstract
